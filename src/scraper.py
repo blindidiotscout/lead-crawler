@@ -489,17 +489,122 @@ def run_spider(spider_name: str = "wko", **kwargs) -> List[Dict]:
     return results
 
 
+def run_spider_radius(center_plz: str, radius_km: float = 20, 
+                       max_plz: int = None, dedup: bool = True) -> List[Dict]:
+    """
+    Crawlt alle Unternehmen im Radius um eine PLZ
+    
+    Nutzt die PLZ-Datenbank um alle PLZ im Radius zu finden,
+    dann werden alle Orte dieser PLZs gecrawlt.
+    
+    Args:
+        center_plz: Zentrale PLZ (z.B. "2351")
+        radius_km: Radius in Kilometern (default: 20)
+        max_plz: Maximale Anzahl PLZs zum Crawlen (optional, für Rate-Limiting)
+        dedup: Duplikate entfernen (default: True)
+    
+    Returns:
+        Liste von Unternehmen (dedupliziert wenn dedup=True)
+    
+    Example:
+        # Alle Unternehmen im 20km Radius um Guntramsdorf
+        results = run_spider_radius("2351", radius_km=20)
+        
+        # 50km Radius, max 10 PLZ (für schnellen Test)
+        results = run_spider_radius("2351", radius_km=50, max_plz=10)
+    """
+    from src.plz_radius import PLZRadiusService
+    import time
+    
+    # PLZs im Radius finden
+    plz_service = PLZRadiusService('data/plz_austria.db')
+    plz_list = plz_service.find_plz_in_radius(center_plz, radius_km)
+    
+    if not plz_list:
+        print(f"Keine PLZ im {radius_km}km Radius um {center_plz} gefunden")
+        return []
+    
+    print(f"PLZ {center_plz}: {len(plz_list)} PLZ im {radius_km}km Radius")
+    
+    # Optional: Limitieren
+    if max_plz:
+        plz_list = plz_list[:max_plz]
+        print(f"  (limitiert auf {max_plz} PLZ)")
+    
+    # Alle PLZs crawlen
+    all_results = []
+    unique_plzs = set()
+    
+    for i, item in enumerate(plz_list, 1):
+        plz = item['plz']
+        ort = item['ort']
+        distance = item['distance_km']
+        
+        # PLZ nur einmal crawlen (manche PLZ haben mehrere Orte)
+        if plz in unique_plzs:
+            continue
+        unique_plzs.add(plz)
+        
+        print(f"\n[{i}/{len(plz_list)}] PLZ {plz} ({ort}) - {distance:.1f}km")
+        
+        try:
+            results = run_spider(plz=plz)
+            print(f"  → {len(results)} Unternehmen")
+            all_results.extend(results)
+            
+            # Rate-Limiting: kurze Pause zwischen Requests
+            if i < len(plz_list):
+                time.sleep(1)
+                
+        except Exception as e:
+            print(f"  ⚠️ Fehler: {e}")
+            continue
+    
+    # Deduplizierung
+    if dedup and all_results:
+        print(f"\nDedupliziere {len(all_results)} Ergebnisse...")
+        all_results = _deduplicate_companies(all_results)
+        print(f"  → {len(all_results)} einzigartige Unternehmen")
+    
+    return all_results
+
+
+def _deduplicate_companies(companies: List[Dict]) -> List[Dict]:
+    """
+    Entfernt Duplikate aus der Unternehmensliste
+    
+    Duplikat = gleicher Name + gleiche Adresse
+    """
+    seen = set()
+    unique = []
+    
+    for company in companies:
+        # Key: Name + PLZ + Straße (normalisiert)
+        name = (company.get('name') or '').lower().strip()
+        plz = company.get('plz') or ''
+        street = (company.get('street') or '').lower().strip()
+        
+        key = (name, plz, street)
+        
+        if key not in seen:
+            seen.add(key)
+            unique.append(company)
+    
+    return unique
+
+
 if __name__ == "__main__":
     print("=== WKO Spider Test ===\n")
     
-    # Test mit Guntramsdorf
-    print("Test: Suche nach Guntramsdorf")
-    print("URL: https://firmen.wko.at/guntramsdorf/niederösterreich\n")
+    # Test: Radius-Suche um Guntramsdorf
+    print("Test: 10km Radius um PLZ 2351 (Guntramsdorf)\n")
     
-    results = run_spider(ort="Guntramsdorf", bundesland="niederösterreich")
+    results = run_spider_radius("2351", radius_km=10, max_plz=5)
     
+    print(f"\n{'='*50}")
     print(f"Gefundene Unternehmen: {len(results)}\n")
-    for i, c in enumerate(results[:5], 1):
+    
+    for i, c in enumerate(results[:10], 1):
         print(f"{i}. {c.get('name')}")
         print(f"   {c.get('street')}, {c.get('plz')} {c.get('ort')}")
         print()
