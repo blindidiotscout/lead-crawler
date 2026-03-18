@@ -11,10 +11,160 @@ URL-Formate:
 """
 
 import scrapy
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass, asdict
 from datetime import datetime
 import re
+import sqlite3
+from pathlib import Path
+
+
+class PLZLookup:
+    """PLZ zu Ort/Bundesland Lookup aus SQLite-Datenbank"""
+    
+    def __init__(self, db_path: str = None):
+        """
+        Initialisiert PLZ-Lookup
+        
+        Args:
+            db_path: Pfad zur plz_austria.db (default: data/plz_austria.db)
+        """
+        if db_path is None:
+            # Default-Pfad relativ zum Modul
+            module_dir = Path(__file__).parent.parent
+            db_path = module_dir / "data" / "plz_austria.db"
+        
+        self.db_path = str(db_path)
+        self._conn = None
+    
+    @property
+    def conn(self):
+        """Lazy connection initialization"""
+        if self._conn is None:
+            self._conn = sqlite3.connect(self.db_path)
+        return self._conn
+    
+    def get_ort_by_plz(self, plz: str) -> List[Tuple[str, str, str]]:
+        """
+        Sucht Ort(e) für eine PLZ
+        
+        Args:
+            plz: 4-stellige PLZ (z.B. "2351")
+        
+        Returns:
+            Liste von (ort, bundesland, bezirk) Tupeln
+            Beispiel: [("Guntramsdorf", "Niederösterreich", "Mödling")]
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT ort, bundesland, bezirk
+            FROM plz_coordinates
+            WHERE plz = ?
+            ORDER BY ort
+        """, (plz,))
+        
+        results = cursor.fetchall()
+        return [(row[0], row[1], row[2]) for row in results]
+    
+    def get_plz_info(self, plz: str) -> Optional[Dict]:
+        """
+        Gibt alle Infos zu einer PLZ zurück
+        
+        Args:
+            plz: 4-stellige PLZ
+        
+        Returns:
+            Dict mit plz, ort, bundesland, lat, lon (erster Treffer)
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT plz, ort, bundesland, lat, lon, bezirk
+            FROM plz_coordinates
+            WHERE plz = ?
+            ORDER BY ort
+            LIMIT 1
+        """, (plz,))
+        
+        row = cursor.fetchone()
+        if row:
+            return {
+                'plz': row[0],
+                'ort': row[1],
+                'bundesland': row[2],
+                'lat': row[3],
+                'lon': row[4],
+                'bezirk': row[5]
+            }
+        return None
+    
+    def get_all_orte_by_plz(self, plz: str) -> List[Dict]:
+        """
+        Gibt alle Orte zu einer PLZ zurück
+        
+        Args:
+            plz: 4-stellige PLZ
+        
+        Returns:
+            Liste von Dicts mit ort, bundesland, bezirk, lat, lon
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT ort, bundesland, bezirk, lat, lon
+            FROM plz_coordinates
+            WHERE plz = ?
+            ORDER BY ort
+        """, (plz,))
+        
+        return [
+            {'ort': row[0], 'bundesland': row[1], 'bezirk': row[2], 'lat': row[3], 'lon': row[4]}
+            for row in cursor.fetchall()
+        ]
+    
+    def get_wko_url(self, plz: str) -> List[str]:
+        """
+        Generiert WKO-URLs für alle Orte einer PLZ
+        
+        Args:
+            plz: 4-stellige PLZ
+        
+        Returns:
+            Liste von WKO URLs (eine pro Ort)
+        """
+        orte = self.get_all_orte_by_plz(plz)
+        if not orte:
+            return []
+        
+        urls = []
+        for ort_info in orte:
+            ort = ort_info['ort'].lower().replace(' ', '-')
+            bundesland = ort_info['bundesland'].lower()
+            urls.append(f"https://firmen.wko.at/{ort}/{bundesland}")
+        
+        return urls
+    
+    def close(self):
+        """Schließt DB-Verbindung"""
+        if self._conn:
+            self._conn.close()
+            self._conn = None
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
+# Globale Instanz (lazy)
+_plz_lookup = None
+
+
+def get_plz_lookup() -> PLZLookup:
+    """Gibt globale PLZ-Lookup Instanz zurück"""
+    global _plz_lookup
+    if _plz_lookup is None:
+        _plz_lookup = PLZLookup()
+    return _plz_lookup
 
 
 # Bundesland-Mapping
@@ -89,7 +239,8 @@ class WkoSpider(scrapy.Spider):
     BASE_URL = "https://firmen.wko.at"
     
     def __init__(self, plz: Optional[str] = None, ort: Optional[str] = None,
-                 bundesland: Optional[str] = None, page: int = 1, *args, **kwargs):
+                 bundesland: Optional[str] = None, page: int = 1,
+                 _urls: Optional[List[str]] = None, *args, **kwargs):
         """
         Initialisiert Spider mit Suchparametern
         
@@ -98,6 +249,7 @@ class WkoSpider(scrapy.Spider):
             ort: Ortsname für direkte Suche (z.B. "Guntramsdorf")
             bundesland: Bundesland (z.B. "niederösterreich")
             page: Startseite für Paginierung
+            _urls: Direkte URLs (intern verwendet)
         """
         super().__init__(*args, **kwargs)
         self.plz = plz
@@ -106,24 +258,49 @@ class WkoSpider(scrapy.Spider):
         self.page = page
         
         # URL aufbauen
-        self.start_urls = self._build_urls()
+        if _urls:
+            # URLs wurden direkt übergeben
+            self.start_urls = _urls
+        else:
+            self.start_urls = self._build_urls()
     
     def _build_urls(self) -> List[str]:
-        """Baut Such-URLs basierend auf Parametern"""
+        """Baut Such-URLs basierend auf Parametern
+        
+        Priorität:
+        1. PLZ (wird zu Ort aufgelöst via PLZ-Datenbank)
+        2. Ort + Bundesland
+        3. Ort (alle Bundesländer)
+        
+        Returns:
+            Liste von URLs (kann mehrere sein für PLZ mit mehreren Orten)
+        """
+        
+        # PLZ-Suche: Zu Ort auflösen
+        if self.plz and not self.ort:
+            lookup = get_plz_lookup()
+            urls = lookup.get_wko_url(self.plz)
+            
+            if urls:
+                self.logger.info(f"PLZ {self.plz} → {len(urls)} URL(s)")
+                for url in urls:
+                    self.logger.info(f"  {url}")
+                return urls
+            else:
+                self.logger.warning(f"PLZ {self.plz} nicht in Datenbank gefunden")
+                return [f"{self.BASE_URL}/"]
         
         # Bundesland normalisieren
         bl = None
         if self.bundesland:
             bl = BUNDESLAENDER.get(self.bundesland.lower(), self.bundesland.lower())
         
-        # Ort: Wenn PLZ gegeben, muss diese zu Ort aufgelöst werden
-        # Aktuell: PLZ-Suche nicht direkt unterstützt, nur Ortssuche
+        # Ortssuche
         if self.ort:
             ort_clean = self.ort.lower().replace(' ', '-')
             if bl:
                 return [f"{self.BASE_URL}/{ort_clean}/{bl}"]
             else:
-                # Versuche alle Bundesländer
                 return [f"{self.BASE_URL}/{ort_clean}"]
         
         # Default: Hauptseite
@@ -245,14 +422,20 @@ def run_spider(spider_name: str = "wko", **kwargs) -> List[Dict]:
     Usage:
         from src.scraper import run_spider
         
-        # PLZ-Suche (benötigt Ort-Auflösung)
-        results = run_spider(plz="2351")  # Guntramsdorf
+        # PLZ-Suche (nutzt PLZ-Datenbank)
+        results = run_spider(plz="2351")  # → Guntramsdorf
         
         # Ortssuche
         results = run_spider(ort="Guntramsdorf", bundesland="niederösterreich")
         
-        # Bundesland-Suche
-        results = run_spider(ort="Wien", bundesland="wien")
+        # Alle Orte im Umkreis (nutzt PLZ-Datenbank)
+        from src.plz_radius import PLZRadiusService
+        service = PLZRadiusService('data/plz_austria.db')
+        plz_list = service.find_plz_in_radius("2351", 20)  # 20km Radius
+        all_results = []
+        for item in plz_list:
+            results = run_spider(plz=item['plz'])
+            all_results.extend(results)
     """
     from scrapy.crawler import CrawlerProcess
     import json
@@ -264,21 +447,16 @@ def run_spider(spider_name: str = "wko", **kwargs) -> List[Dict]:
     output_path = output_file.name
     output_file.close()
     
-    # PLZ zu Ort auflösen (vereinfacht)
+    # PLZ zu Ort auflösen via Datenbank
     if 'plz' in kwargs and 'ort' not in kwargs:
-        # TODO: PLZ-Datenbank nutzen
-        plz_to_ort = {
-            '2351': ('Guntramsdorf', 'niederösterreich'),
-            '2353': ('Guntramsdorf', 'niederösterreich'),
-            '1010': ('Wien', 'wien'),
-            # ... weitere
-        }
-        plz = kwargs.pop('plz')
-        if plz in plz_to_ort:
-            ort, bl = plz_to_ort[plz]
-            kwargs['ort'] = ort
-            if 'bundesland' not in kwargs:
-                kwargs['bundesland'] = bl
+        lookup = get_plz_lookup()
+        urls = lookup.get_wko_url(kwargs['plz'])
+        
+        if urls:
+            # URLs direkt übergeben
+            kwargs['_urls'] = urls
+            import logging
+            logging.info(f"PLZ {kwargs['plz']} → {len(urls)} URLs")
     
     # Scrapy Einstellungen
     settings = {
@@ -290,9 +468,9 @@ def run_spider(spider_name: str = "wko", **kwargs) -> List[Dict]:
         'CONCURRENT_REQUESTS_PER_DOMAIN': 1,
     }
     
-    # Spider ausführen
+    # Spider ausführen - direkt Klasse übergeben
     process = CrawlerProcess(settings)
-    process.crawl(spider_name, **kwargs)
+    process.crawl(WkoSpider, **kwargs)  # Spider-Klasse direkt, nicht Name
     process.start()
     
     # Ergebnisse laden
