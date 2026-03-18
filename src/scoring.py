@@ -289,27 +289,57 @@ class ScoringEngine:
         return score, reasons
     
     def _score_size(self, company: Dict) -> tuple:
-        """Bewertet Unternehmensgröße (Schätzung basierend auf Name/Infos)"""
+        """Bewertet Unternehmensgröße (Schätzung basierend auf Rechtsform)
+        
+        Priorität: 5-20 Mitarbeiter (KMU) → höchster Score
+        Großunternehmen (AG) und Einzelunternehmen (e.U.) → niedrigster Score
+        """
         score = 0.0
         reasons = []
         max_score = self.weights['size']
         
         name = (company.get('name') or '').lower()
         
-        # KMU-Indikatoren im Namen
-        if any(ind in name for ind in ['gmbh', 'ges.mbh', 'kg', 'og', 'eg']):
+        # Größen-Schätzung basierend auf Rechtsform
+        # Priorität: KMU (5-20 Mitarbeiter) → 100%
+        
+        if 'gmbh & co kg' in name:
+            # Mittelgroß, oft 20-100 Mitarbeiter
             score = max_score * 0.7
-            reasons.append("○ KMU (GmbH/KG/EG)")
-        elif 'ag' in name:
+            reasons.append("○ GmbH & Co KG (20-100 MA)")
+            
+        elif ' ag' in name or name.endswith(' ag') or name.startswith('ag '):
+            # Großunternehmen, meist >50 Mitarbeiter
+            score = max_score * 0.3
+            reasons.append("✗ AG (Großunternehmen)")
+            
+        elif any(ind in name for ind in ['e.u.', ' e.u.', 'selbständig', 'ingenieur', 'architekt']):
+            # Einzelunternehmen, 1-2 Mitarbeiter
+            score = max_score * 0.3
+            reasons.append("✗ Einzelunternehmen (1-2 MA)")
+            
+        elif 'gmbh' in name:
+            # KMU, typisch 5-50 Mitarbeiter
             score = max_score
-            reasons.append("✓ Großunternehmen (AG)")
-        elif any(ind in name for ind in ['e.u.', 'eu', 'selbständig', 'ingenieur']):
-            score = max_score * 0.5
-            reasons.append("○ Einzelperson/Einzelunternehmen")
-        elif 'gmbh & co kg' in name:
+            reasons.append("✓ GmbH (5-50 MA) - IDEAL")
+            
+        elif 'kg' in name:
+            # KG, oft 10-50 Mitarbeiter
+            score = max_score * 0.9
+            reasons.append("✓ KG (10-50 MA)")
+            
+        elif 'og' in name:
+            # OG, oft 2-10 Mitarbeiter
             score = max_score * 0.8
-            reasons.append("○ Mittelgroßes Unternehmen (GmbH & Co KG)")
+            reasons.append("○ OG (2-10 MA)")
+            
+        elif 'eg' in name:
+            # Erwerbs-Genossenschaft
+            score = max_score * 0.8
+            reasons.append("○ EG (Genossenschaft)")
+            
         else:
+            # Unbekannt → neutral
             score = max_score * 0.5
             reasons.append("○ Größe unbekannt")
         
