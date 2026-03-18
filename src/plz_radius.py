@@ -131,6 +131,20 @@ class PLZRadiusService:
         self.db = PLZDatabase(db_path)
         self.calculator = HaversineCalculator()
     
+    def get_all_plz(self) -> List[PLZCoordinate]:
+        """Ruft alle PLZ aus der Datenbank ab"""
+        conn = sqlite3.connect(self.db.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT plz, ort, lat, lon, bundesland FROM plz_coordinates
+        """)
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        return [PLZCoordinate(plz=row[0], ort=row[1], lat=row[2], lon=row[3], bundesland=row[4]) for row in rows]
+
     def find_plz_in_radius(self, center_plz: str, radius_km: float) -> List[Dict]:
         """
         Findet alle PLZ im gegebenen Radius um eine Ziel-PLZ
@@ -146,9 +160,8 @@ class PLZRadiusService:
         if not center:
             raise ValueError(f"PLZ {center_plz} nicht gefunden")
         
-        # Hole alle PLZ aus NÖ und Wien (kann erweitert werden)
-        all_plz = self.db.get_all_plz_in_bundesland("NÖ")
-        all_plz.extend(self.db.get_all_plz_in_bundesland("Wien"))
+        # Hole alle PLZ aus der Datenbank
+        all_plz = self.get_all_plz()
         
         results = []
         for plz in all_plz:

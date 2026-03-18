@@ -43,6 +43,10 @@ htmlcov/
 *.db
 *.sqlite3
 
+# But keep the import script
+!data/import_plz.py
+!data/zipcodes.at.csv
+
 # Config (secrets)
 config/settings.py
 
