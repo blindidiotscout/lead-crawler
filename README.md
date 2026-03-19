@@ -27,6 +27,7 @@ Findet und analysiert Unternehmen:
 | **LLM Pipeline** | ✅ | `llm_pipeline.py` - End-to-End: Crawl → Analyze → Cache |
 | **Enhanced Spider** | ✅ | `enhanced_scraper.py` - WKO + LLM kombiniert |
 | **Scoring Engine** | ✅ | `scoring.py` + `enhanced_scoring.py` |
+| **ecoplus Spider** | 🔬 | `ecoplus_spider.py` - Experimentell (NÖ Industrieparks) |
 
 ---
 
