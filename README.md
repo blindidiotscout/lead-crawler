@@ -27,6 +27,8 @@ Findet und analysiert Unternehmen:
 | **LLM Pipeline** | ✅ | `llm_pipeline.py` - End-to-End: Crawl → Analyze → Cache |
 | **Enhanced Spider** | ✅ | `enhanced_scraper.py` - WKO + LLM kombiniert |
 | **Scoring Engine** | ✅ | `scoring.py` + `enhanced_scoring.py` |
+| **CSV Export** | ✅ | `csv_export.py` - Mit LLM/Scoring-Spalten |
+| **JSON Summary** | ✅ | Statistiken pro Export |
 | **ecoplus Spider** | 🔬 | `ecoplus_spider.py` - Experimentell (NÖ Industrieparks) |
 
 ---
@@ -257,13 +259,30 @@ CACHE_DB = "data/analysis_cache.db"
 
 ## 🔧 TODO / Roadmap
 
-| Feature | Status |
-|---------|--------|
-| FastAPI Backend | 🔲 Geplant |
-| CSV/JSON Export | 🔲 Geplant |
-| Weitere Datenquellen (EKO Plus) | 🔲 Geplant |
-| Web-UI (Streamlit) | 🔲 Geplant |
-| API-Key Auth | 🔲 Geplant |
+| Feature | Status | Beschreibung |
+|---------|--------|--------------|
+| CSV Export | ✅ | `csv_export.py` - Mit LLM/Scoring-Spalten |
+| JSON Summary | ✅ | Statistiken pro Export |
+| FastAPI Backend | 🔲 Geplant | REST API für n8n Integration |
+| Web-UI Frontend | 🔲 Geplant | Suchmaske + Datenanzeige |
+| Weitere Datenquellen | 🔲 Geplant | ecoplus (experimentell) |
+| API-Key Auth | 🔲 Geplant | Für Backend |
+
+---
+
+## 🖥️ Web Frontend (geplant)
+
+Benötigt:
+- **Suchmaske:** PLZ + Radius eingeben
+- **Ergebnis-Tabelle:** Unternehmen mit allen Feldern
+- **Filter:** Nach Branche, Größe, etc.
+- **Export:** CSV/JSON Download
+- **Details-View:** LLM-Analyse anzeigen
+
+Tech-Stack Optionen:
+- Streamlit (Python, schnell)
+- Flask/FastAPI + React (flexibel)
+- Gradio (ML-Focus)
 
 ---
 
