@@ -1,8 +1,8 @@
 # Lead Crawler Configuration
 
 # Supabase Connection
-SUPABASE_URL = "http://192.168.178.118:8000"  # Deine lokale Supabase-VM
-SUPABASE_KEY = "your-anon-key-here"  # Aus Supabase Dashboard
+SUPABASE_URL = "http://192.168.178.100:8000"  # Deine lokale Supabase-VM
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"  #Aus Supabase Dashboard anon Key
 
 # Ollama Endpoint
 OLLAMA_HOST = "http://192.168.178.123:11434"
