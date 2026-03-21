@@ -9,6 +9,10 @@ import tempfile
 import time
 from typing import Any
 
+# Twisted/Scrapy Signal-Handler für Streamlit deaktivieren
+os.environ["TWISTED_REACTOR"] = "asyncio"
+os.environ["TWISTED_DISABLE_SIGNAL_HANDLERS"] = "1"
+
 from lead_crawler.config import CrawlerConfig
 from lead_crawler.crawlers.base import BaseCrawler, CrawlerFactory, CrawlerResult, CrawlerStatus
 from lead_crawler.models import Company, CompanySource
@@ -205,7 +209,7 @@ class WKOCrawler(BaseCrawler):
         output_path = output_file.name
         output_file.close()
 
-        # Scrapy Settings
+        # Scrapy Settings - Signal-Handler für Streamlit deaktivieren
         settings = {
             "FEEDS": {output_path: {"format": "jsonlines"}},
             "LOG_LEVEL": "WARNING",
@@ -213,6 +217,9 @@ class WKOCrawler(BaseCrawler):
             "ROBOTSTXT_OBEY": self.config.respect_robots_txt,
             "DOWNLOAD_DELAY": self.config.rate_limit,
             "CONCURRENT_REQUESTS_PER_DOMAIN": self.config.concurrent_requests,
+            # Signal-Handler deaktivieren (für Streamlit-Kompatibilität)
+            "TELNETCONSOLE_ENABLED": False,
+            "EXTENSIONS": {"scrapy.extensions.telnet.TelnetConsole": None},
         }
 
         companies = []
