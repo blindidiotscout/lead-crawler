@@ -58,7 +58,7 @@ class WkoSpider(scrapy.Spider):
             return
 
         # Extrahiere Firmeneinträge
-        articles = response.css('article.search-result-article')
+        articles = response.css("article.search-result-article")
         self.logger.info(f"Gefunden: {len(articles)} Firmeneinträge auf {response.url}")
 
         for article in articles:
@@ -69,9 +69,9 @@ class WkoSpider(scrapy.Spider):
     def _parse_result_article(self, article, response) -> dict[str, Any] | None:
         """Parst einen einzelnen Suchergebnis-Artikel."""
         # Name
-        name = article.css('h3::text').get()
+        name = article.css("h3::text").get()
         if not name:
-            name = article.css('a.title-link h3::text').get()
+            name = article.css("a.title-link h3::text").get()
 
         if not name:
             return None
@@ -79,14 +79,14 @@ class WkoSpider(scrapy.Spider):
         name = name.strip()
 
         # URL
-        url = article.css('a.title-link::attr(href)').get()
-        if url and not url.startswith('http'):
-            url = url.split('?')[0]
+        url = article.css("a.title-link::attr(href)").get()
+        if url and not url.startswith("http"):
+            url = url.split("?")[0]
             url = response.urljoin(url)
 
         # Adresse
-        street = article.css('div.street::text').get(default='').strip()
-        place = article.css('div.place::text').get(default='').strip()
+        street = article.css("div.street::text").get(default="").strip()
+        place = article.css("div.place::text").get(default="").strip()
 
         # PLZ und Ort extrahieren
         plz, ort = self._extract_plz_ort(place)
@@ -97,31 +97,31 @@ class WkoSpider(scrapy.Spider):
         # Telefon
         telefon = article.css('a[href^="tel:"]::attr(href)').get()
         if telefon:
-            telefon = telefon.replace('tel:', '').replace('%20', ' ').strip()
+            telefon = telefon.replace("tel:", "").replace("%20", " ").strip()
 
         # Email
         email = article.css('a[href^="mailto:"]::attr(href)').get()
         if email:
-            email = email.replace('mailto:', '').strip()
+            email = email.replace("mailto:", "").strip()
 
         # Website (nicht WKO-Links)
         website = None
         for link in article.css('a[href^="http"]::attr(href)').getall():
-            if 'wko.at' not in link and 'maps.google' not in link:
+            if "wko.at" not in link and "maps.google" not in link:
                 website = link
                 break
 
         return {
-            'name': name,
-            'url': url,
-            'street': street,
-            'plz': plz,
-            'ort': ort,
-            'bundesland': bundesland,
-            'telefon': telefon,
-            'email': email,
-            'website': website,
-            'source': 'firmen.wko.at',
+            "name": name,
+            "url": url,
+            "street": street,
+            "plz": plz,
+            "ort": ort,
+            "bundesland": bundesland,
+            "telefon": telefon,
+            "email": email,
+            "website": website,
+            "source": "firmen.wko.at",
         }
 
     def _extract_plz_ort(self, place_text: str) -> tuple[str | None, str | None]:
@@ -132,12 +132,12 @@ class WkoSpider(scrapy.Spider):
         place_text = place_text.strip()
 
         # PLZ (4-stellig)
-        plz_match = re.search(r'\b(\d{4})\b', place_text)
+        plz_match = re.search(r"\b(\d{4})\b", place_text)
         plz = plz_match.group(1) if plz_match else None
 
         # Ort (alles nach PLZ)
         if plz:
-            ort_match = re.search(r'\d{4}\s+(.+)', place_text)
+            ort_match = re.search(r"\d{4}\s+(.+)", place_text)
             ort = ort_match.group(1).strip() if ort_match else None
         else:
             ort = place_text
@@ -147,8 +147,8 @@ class WkoSpider(scrapy.Spider):
     def _extract_bundesland(self, url: str) -> str | None:
         """Extrahiert Bundesland aus URL."""
         # Format: https://firmen.wko.at/{ort}/{bundesland}
-        parts = url.split('/')
+        parts = url.split("/")
         if len(parts) >= 5:
-            bl = parts[4].split('?')[0]
+            bl = parts[4].split("?")[0]
             return self.BUNDESLAENDER.get(bl, bl)
         return None

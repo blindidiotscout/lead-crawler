@@ -239,6 +239,7 @@ class WKOCrawler(BaseCrawler):
         except Exception as e:
             self.logger.error(f"Scrapy error details: {type(e).__name__}: {e}")
             import traceback
+
             self.logger.debug(traceback.format_exc())
             self._track_error(f"Scrapy failed: {e}")
 
