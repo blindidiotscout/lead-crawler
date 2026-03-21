@@ -1,111 +1,70 @@
-# Lead Crawler
+# Lead Crawler v2.0
 
 **Automatisierte Lead-Generierung für KMU in Österreich**
 
----
-
-## 🎯 Was macht das Tool?
-
-Findet und analysiert Unternehmen:
-- 📍 Geografische Suche (PLZ + Radius)
-- 🏢 WKO Firmen-Daten (kostenlos, öffentlich)
-- 🤖 LLM-basierte Branchen-Erkennung (lokal via Ollama)
-- 📊 Lead-Scoring (0-100 Punkte)
-- 💾 Cache für Analysen (SQLite)
+Eine moderne, modulare Anwendung zum Crawlen, Analysieren und Bewerten von Unternehmensdaten.
 
 ---
 
-## ✅ Implementiert
+## 🎯 Features
 
-| Komponente | Status | Beschreibung |
-|------------|--------|--------------|
-| **WKO Spider** | ✅ | `scraper.py` - Crawlt firmen.wko.at |
-| **PLZ-Radius** | ✅ | `plz_radius.py` - Findet PLZ im Umkreis |
-| **Website Crawler** | ✅ | `website_crawler.py` - Extrahiert Text von Websites |
-| **LLM Analyzer** | ✅ | `llm_analyzer.py` - Branchen-Erkennung via Ollama |
-| **Analysis Cache** | ✅ | `analysis_cache.py` - SQLite-Cache für LLM-Results |
-| **LLM Pipeline** | ✅ | `llm_pipeline.py` - End-to-End: Crawl → Analyze → Cache |
-| **Enhanced Spider** | ✅ | `enhanced_scraper.py` - WKO + LLM kombiniert |
-| **Scoring Engine** | ✅ | `scoring.py` + `enhanced_scoring.py` |
-| **CSV Export** | ✅ | `csv_export.py` - Mit LLM/Scoring-Spalten |
-| **JSON Summary** | ✅ | Statistiken pro Export |
-| **ecoplus Spider** | 🔬 | `ecoplus_spider.py` - Experimentell (NÖ Industrieparks) |
+| Feature | Beschreibung |
+|---------|--------------|
+| 🔍 **PLZ/Radius Suche** | Finde Unternehmen im Umkreis einer PLZ |
+| 🏢 **WKO Daten** | Crawlt firmen.wko.at (kostenlos, öffentlich) |
+| 🤖 **LLM-Analyse** | Branchen-Erkennung via Ollama (lokal) |
+| 📊 **Lead Scoring** | Automatische Bewertung (0-100 Punkte) |
+| 💾 **Caching** | SQLite-Cache für Analysen |
+| 🌐 **REST API** | FastAPI Backend für n8n Integration |
+| 🖥️ **Web UI** | Streamlit Multi-Page Frontend |
 
 ---
 
 ## 🏗️ Architektur
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Lead Crawler                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │
-│  │ PLZ-Service  │───▶│ WKO Spider   │───▶│ LLM Pipeline │  │
-│  │ (Radius)     │    │ (scraper.py) │    │              │  │
-│  └──────────────┘    └──────────────┘    └──────┬───────┘  │
-│                                                   │          │
-│                                          ┌───────▼───────┐  │
-│                                          │ Website       │  │
-│                                          │ Crawler       │  │
-│                                          └───────┬───────┘  │
-│                                                  │          │
-│                                          ┌───────▼───────┐  │
-│                                          │ LLM Analyzer  │  │
-│                                          │ (Ollama)      │  │
-│                                          └───────┬───────┘  │
-│                                                  │          │
-│                          ┌───────────────────────┼────────┐ │
-│                          │                       │        │ │
-│                   ┌──────▼──────┐         ┌──────▼──────┐ │ │
-│                   │ Scoring     │         │ Cache       │ │ │
-│                   │ Engine      │         │ (SQLite)    │ │ │
-│                   └─────────────┘         └─────────────┘ │ │
-│                                                          │ │
-└─────────────────────────────────────────────────────────────┘
+src/
+├── lead_crawler/           # Core Package
+│   ├── models/             # Domain Models
+│   │   ├── company.py      # Company, Address, ContactInfo
+│   │   ├── analysis.py     # BranchAnalysis, LLMAnalysisResult
+│   │   ├── scoring.py      # LeadScore, ScoreBreakdown
+│   │   └── plz.py          # PLZCoordinate, PLZInfo
+│   ├── services/           # Business Logic
+│   │   ├── cache.py        # SQLiteCache mit TTL
+│   │   ├── llm_client.py   # OllamaClient, MockLLMClient
+│   │   ├── website_extractor.py
+│   │   └── plz_service.py  # PLZ-Radius-Suche
+│   ├── crawlers/           # Web Crawlers
+│   │   ├── base.py         # BaseCrawler, CrawlerResult
+│   │   └── wko.py          # WKOCrawler
+│   ├── runners/            # Scrapy Runner
+│   └── pipelines/          # End-to-End Workflows
+│       ├── lead_analysis.py
+│       └── export.py
+│
+├── api/                    # FastAPI Backend
+│   ├── main.py             # App Entry Point
+│   ├── schemas.py          # Pydantic Models
+│   ├── dependencies.py     # DI Container
+│   └── routes/
+│       ├── search.py       # /search, /search/n8n
+│       ├── company.py      # /company, /company/analyze
+│       ├── analyze.py      # /analyze/batch
+│       └── export.py       # /export, /export/n8n
+│
+└── web/                    # Streamlit Frontend
+    ├── Home.py             # Startseite
+    └── pages/
+        ├── 1_Search.py     # Unternehmenssuche
+        ├── 2_Analysis.py   # Statistiken
+        ├── 3_Export.py     # Datenexport
+        └── 4_Settings.py   # Einstellungen
 ```
 
 ---
 
-## 🛠️ Tech-Stack
-
-| Komponente | Technologie |
-|------------|-------------|
-| **Crawler** | Scrapy (Python) |
-| **PLZ-Daten** | SQLite (offline) |
-| **LLM** | Ollama (lokal, qwen2.5:7b) |
-| **Cache** | SQLite |
-| **HTTP** | requests + beautifulsoup4 |
-
----
-
-## 📁 Projektstruktur
-
-```
-lead-crawler/
-├── README.md
-├── requirements.txt
-├── config/
-│   └── settings.example.py
-├── data/
-│   ├── plz_austria.db          # PLZ-Datenbank (SQLite)
-│   ├── analysis_cache.db       # LLM-Analysen (SQLite)
-│   └── *.json                  # Rohdaten
-└── src/
-    ├── scraper.py              # WKO Spider (Basis)
-    ├── enhanced_scraper.py     # WKO + LLM
-    ├── plz_radius.py           # PLZ-Radius-Service
-    ├── website_crawler.py      # Website-Text extrahieren
-    ├── llm_analyzer.py         # Branchen-Erkennung (Ollama)
-    ├── llm_pipeline.py         # End-to-End Pipeline
-    ├── analysis_cache.py       # Cache für LLM-Results
-    ├── scoring.py              # Lead-Scoring Engine
-    └── enhanced_scoring.py     # Scoring mit LLM-Daten
-```
-
----
-
-## 🚀 Quick Start
+## 📦 Installation
 
 ```bash
 # 1. Clone
@@ -119,131 +78,276 @@ source venv/bin/activate
 # 3. Install
 pip install -r requirements.txt
 
-# 4. Ollama starten (auf 192.168.178.123:11434)
-# Modell: qwen2.5:7b
-
-# 5. Test
-python -c "from src.enhanced_scraper import run_enhanced_spider; print('OK')"
+# 4. Environment (optional)
+cp .env.example .env
+# Edit .env with your settings
 ```
 
 ---
 
-## 📖 Usage
+## 🚀 Quick Start
 
-### Einfacher WKO-Crawl
+### 1. Kommandozeile (CLI)
 
 ```python
-from src.scraper import run_spider
+from lead_crawler.crawlers import WKOCrawler
+from lead_crawler.pipelines import LeadAnalysisPipeline
+
+# Einfacher Crawl
+crawler = WKOCrawler()
+result = crawler.crawl(plz="2351", radius_km=20)
+print(f"Found {result.total} companies")
+
+# Mit LLM-Analyse
+pipeline = LeadAnalysisPipeline()
+result = pipeline.analyze_from_crawler(crawler, plz="2351")
+for company in result.companies:
+    print(f"{company.name}: {company.score.grade}")
+```
+
+### 2. Web UI (Streamlit)
+
+```bash
+streamlit run web/Home.py
+```
+
+### 3. REST API (FastAPI)
+
+```bash
+uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+API Endpoints:
+- `GET /docs` - Swagger UI
+- `GET /redoc` - ReDoc
+- `POST /api/v1/search` - Unternehmenssuche
+- `POST /api/v1/company/analyze` - LLM-Analyse
+- `POST /api/v1/export` - Datenexport
+
+---
+
+## 🧪 Tests
+
+```bash
+# Alle Unit Tests
+pytest tests/unit/ -v
+
+# Mit Coverage
+pytest tests/unit/ --cov=lead_crawler --cov-report=html
+
+# Integration Tests (benötigt Ollama)
+pytest tests/integration/ -v -m integration
+
+# Alle Tests
+pytest tests/ -v
+```
+
+**Test-Statistiken:**
+- Unit Tests: 146
+- Integration Tests: 13
+- **Total: 159 Tests ✅**
+
+---
+
+## 📊 Verwendung
+
+### Crawler
+
+```python
+from lead_crawler.crawlers import WKOCrawler
+
+crawler = WKOCrawler()
 
 # PLZ-Suche
-results = run_spider(plz="2351")
-
-# Ortssuche
-results = run_spider(ort="Guntramsdorf", bundesland="niederösterreich")
+result = crawler.crawl(plz="2351")
 
 # Radius-Suche
-results = run_spider_radius("2351", radius_km=20)
+result = crawler.crawl_radius(center_plz="2351", radius_km=20)
+
+# Ort-Suche
+result = crawler.crawl(ort="Guntramsdorf", bundesland="niederösterreich")
 ```
 
-### Mit LLM-Analyse
+### Pipeline
 
 ```python
-from src.enhanced_scraper import run_enhanced_spider
+from lead_crawler.pipelines import LeadAnalysisPipeline
+from lead_crawler.models import Company
 
-# PLZ mit LLM-Branchenanalyse
-results = run_enhanced_spider(
-    plz="2351",
-    use_llm=True,
-    llm_model="qwen2.5:7b",
-    analyze_websites=True
-)
-
-# Jedes Ergebnis hat jetzt:
-# - llm_analysis.branch
-# - llm_analysis.services
-# - llm_analysis.confidence
-# - llm_cached (True = aus Cache)
-```
-
-### LLM Pipeline direkt
-
-```python
-from src.llm_pipeline import LLMPipeline
-
-pipeline = LLMPipeline(ollama_model="qwen2.5:7b")
+pipeline = LeadAnalysisPipeline()
 
 # Einzelnes Unternehmen
-result = pipeline.analyze_company(
-    company_name="AKRAS Flavours",
-    website_url="https://www.akras.at"
-)
+company = Company(name="Test GmbH")
+company.contact.website = "https://test.at"
+result = pipeline.analyze(company)
 
-print(result.analysis.branch)  # "Industrie/Fertigung"
-print(result.analysis.confidence)  # 0.85
+print(result.analysis.branch)      # "IT-Dienstleistungen"
+print(result.score.total_score)    # 85
+print(result.from_cache)           # False
 ```
 
-### Scoring
+### Export
 
 ```python
-from src.scoring import LeadScorer
+from lead_crawler.pipelines import ExportPipeline, ExportConfig
+from lead_crawler.crawlers import WKOCrawler
 
-scorer = LeadScorer()
-score = scorer.score({
-    'name': 'Test GmbH',
-    'branche': 'IT',
-    'plz': '2351',
-    'website': 'https://example.com'
-})
+# Unternehmen suchen
+crawler = WKOCrawler()
+companies = crawler.crawl(plz="2351").companies
 
-print(score.total_score)  # 0-100
-print(score.grade)  # A, B, C, D, F
-print(score.priority)  # HIGH, MEDIUM, LOW
+# Exportieren
+config = ExportConfig(
+    output_format="csv",
+    min_score=50
+)
+pipeline = ExportPipeline()
+result = pipeline.export(companies, config)
+
+print(f"Exported {result.exported_companies} companies to {result.output_path}")
+```
+
+### REST API
+
+```bash
+# Search
+curl -X POST http://localhost:8000/api/v1/search \
+  -H "Content-Type: application/json" \
+  -d '{"plz": "2351", "radius_km": 20}'
+
+# Analyze
+curl -X POST http://localhost:8000/api/v1/company/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"company_name": "Test GmbH", "website_url": "https://test.at"}'
+
+# Export
+curl -X POST http://localhost:8000/api/v1/export \
+  -H "Content-Type: application/json" \
+  -d '{"format": "json"}'
 ```
 
 ---
 
 ## ⚙️ Konfiguration
 
-### Ollama
+### Environment Variables (.env)
 
-```python
-# In llm_analyzer.py / llm_pipeline.py
-OLLAMA_URL = "http://192.168.178.123:11434"
-MODEL = "qwen2.5:7b"
-TIMEOUT = 300  # Sekunden
+```env
+# Ollama
+OLLAMA_URL=http://192.168.178.123:11434
+OLLAMA_MODEL=qwen2.5:7b
+
+# Cache
+CACHE_DB_PATH=data/analysis_cache.db
+CACHE_TTL_DAYS=30
+
+# PLZ
+PLZ_DB_PATH=data/plz_austria.db
+
+# API
+API_HOST=0.0.0.0
+API_PORT=8000
+API_KEYS=your-api-key-here
 ```
 
-### Cache
+### Settings (Python)
 
 ```python
-# Cache-Dauer
-CACHE_TTL_DAYS = 30
+from lead_crawler.config import get_settings
 
-# Cache-Location
-CACHE_DB = "data/analysis_cache.db"
+settings = get_settings()
+print(settings.ollama.url)     # http://192.168.178.123:11434
+print(settings.ollama.model)   # qwen2.5:7b
+print(settings.cache.ttl_days) # 30
 ```
 
 ---
 
-## 📊 Beispiel-Output
+## 📁 Projektstruktur
 
-```python
+```
+lead-crawler/
+├── src/
+│   ├── lead_crawler/      # Core Package
+│   └── api/               # FastAPI Backend
+├── web/                   # Streamlit Frontend
+├── tests/
+│   ├── unit/              # Unit Tests
+│   ├── integration/       # Integration Tests
+│   └── fixtures/          # Test Data
+├── legacy/                # Alte Dateien (Referenz)
+├── data/                  # Datenbanken
+│   ├── plz_austria.db
+│   └── analysis_cache.db
+├── requirements.txt
+├── pytest.ini
+└── REFACTORING.md        # Refactoring-Dokumentation
+```
+
+---
+
+## 📊 Output-Beispiel
+
+```json
 {
-  'name': 'AKRAS Flavours GmbH',
-  'street': 'IZ-NÖ-SÜD Straße 1',
-  'plz': '2351',
-  'ort': 'Biedermannsdorf',
-  'website': 'https://www.akras.at/',
-  'llm_analysis': {
-    'branch': 'Industrie/Fertigung',
-    'sub_branches': ['Aromenherstellung', 'Getränkeindustrie'],
-    'services': ['Produktion von Aromen', 'Kundenservice'],
-    'target_market': 'B2B',
-    'company_size_hint': 'Groß (50+ MA)',
-    'confidence': 0.85
+  "name": "Test GmbH",
+  "address": {
+    "street": "Teststraße 1",
+    "plz": "2351",
+    "ort": "Guntramsdorf"
   },
-  'llm_cached': False
+  "contact": {
+    "telefon": "+43 2236 12345",
+    "email": "info@test.at",
+    "website": "https://test.at"
+  },
+  "analysis": {
+    "branch": "IT-Dienstleistungen",
+    "confidence": 0.92,
+    "services": ["Web Development", "Mobile Apps"],
+    "target_market": "KMU"
+  },
+  "score": {
+    "total_score": 85,
+    "grade": "A",
+    "priority": "HIGH"
+  }
 }
+```
+
+---
+
+## 🧪 Test-Strategie
+
+Siehe `tests/TESTING.md` für detaillierte Dokumentation.
+
+| Kategorie | Tests | Status |
+|-----------|-------|--------|
+| Models | 31 | ✅ |
+| Config | 19 | ✅ |
+| Services | 36 | ✅ |
+| Crawlers | 23 | ✅ |
+| Pipelines | 22 | ✅ |
+| Web | 15 | ✅ |
+| API | 28 | ✅ |
+| Integration | 13 | ✅ |
+
+---
+
+## 🔧 Entwicklung
+
+```bash
+# Tests laufen
+pytest tests/unit/ -v
+
+# Tests mit Coverage
+pytest tests/unit/ --cov=lead_crawler --cov-report=html
+
+# Formatierung
+black src/ tests/
+
+# Linting
+ruff check src/ tests/
 ```
 
 ---
@@ -257,39 +361,32 @@ CACHE_DB = "data/analysis_cache.db"
 
 ---
 
-## 🔧 TODO / Roadmap
-
-| Feature | Status | Beschreibung |
-|---------|--------|--------------|
-| CSV Export | ✅ | `csv_export.py` - Mit LLM/Scoring-Spalten |
-| JSON Summary | ✅ | Statistiken pro Export |
-| FastAPI Backend | 🔲 Geplant | REST API für n8n Integration |
-| Web-UI Frontend | 🔲 Geplant | Suchmaske + Datenanzeige |
-| Weitere Datenquellen | 🔲 Geplant | ecoplus (experimentell) |
-| API-Key Auth | 🔲 Geplant | Für Backend |
-
----
-
-## 🖥️ Web Frontend (geplant)
-
-Benötigt:
-- **Suchmaske:** PLZ + Radius eingeben
-- **Ergebnis-Tabelle:** Unternehmen mit allen Feldern
-- **Filter:** Nach Branche, Größe, etc.
-- **Export:** CSV/JSON Download
-- **Details-View:** LLM-Analyse anzeigen
-
-Tech-Stack Optionen:
-- Streamlit (Python, schnell)
-- Flask/FastAPI + React (flexibel)
-- Gradio (ML-Focus)
-
----
-
 ## 📄 Lizenz
 
 MIT License
 
 ---
 
-*Stand: 2026-03-19*
+## 📝 Changelog
+
+### v2.0.0 (2026-03-21)
+
+**Major Refactoring:**
+- ✅ Domain Models (`models/`)
+- ✅ Configuration System (`config.py`)
+- ✅ Services Layer (`services/`)
+- ✅ Crawler Architecture (`crawlers/`)
+- ✅ Pipeline Pattern (`pipelines/`)
+- ✅ FastAPI Backend (`api/`)
+- ✅ Streamlit Multi-Page Frontend (`web/`)
+- ✅ Comprehensive Test Suite (159 tests)
+- ✅ Integration Tests
+
+**Breaking Changes:**
+- Alte Imports nicht mehr kompatibel
+- Neue Package-Struktur
+- API-Endpoints geändert
+
+---
+
+*Stand: 2026-03-21*
