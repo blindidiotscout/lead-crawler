@@ -98,19 +98,21 @@ if st.button("🚀 Suche starten", disabled=search_disabled, type="primary"):
                     # Crawler ausführen
                     crawler = WKOCrawler()
 
+                    # Immer crawler ausführen
+                    crawler_result = crawler.crawl_radius(
+                        center_plz=plz_input, radius_km=radius_km
+                    )
+
                     if use_llm:
                         # Mit LLM-Analyse
                         pipeline = LeadAnalysisPipeline(settings=settings)
-                        results = pipeline.analyze_from_crawler(
-                            crawler=crawler, plz=plz_input, radius_km=radius_km, skip_cache=False
+                        batch_result = pipeline.analyze_from_crawler(
+                            crawler_result, skip_cache=False
                         )
                         # Konvertiere zu Dict-Liste
-                        companies = [c.to_dict() for c in results.companies]
+                        companies = [r.company.to_dict() for r in batch_result.results]
                     else:
                         # Ohne LLM
-                        crawler_result = crawler.crawl_radius(
-                            center_plz=plz_input, radius_km=radius_km
-                        )
                         companies = [c.to_dict() for c in crawler_result.companies]
 
                     # Duplikate entfernen
