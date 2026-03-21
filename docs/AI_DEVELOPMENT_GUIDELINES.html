@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Development Guidelines</title>
+    <style>
+        @page {
+            margin: 2cm;
+            size: A4;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            page-break-after: avoid;
+        }
+        
+        h2 {
+            color: #2980b9;
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+            margin-top: 30px;
+            page-break-after: avoid;
+        }
+        
+        h3 {
+            color: #34495e;
+            margin-top: 20px;
+            page-break-after: avoid;
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border: 1px solid #e9ecef;
+            font-size: 13px;
+            page-break-inside: avoid;
+        }
+        
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        
+        th, td {
+            border: 1px solid #bdc3c7;
+            padding: 10px;
+            text-align: left;
+        }
+        
+        th {
+            background: #3498db;
+            color: white;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        ul, ol {
+            margin-left: 20px;
+        }
+        
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding-left: 20px;
+            color: #7f8c8d;
+        }
+        
+        .checklist {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        
+        .checklist li {
+            padding: 5px 0;
+        }
+        
+        .checklist li::before {
+            content: "☐ ";
+            color: #3498db;
+        }
+        
+        @media print {
+            body {
+                font-size: 11pt;
+            }
+            
+            h1 {
+                font-size: 18pt;
+            }
+            
+            h2 {
+                font-size: 14pt;
+            }
+            
+            h3 {
+                font-size: 12pt;
+            }
+            
+            pre {
+                font-size: 9pt;
+            }
+            
+            .page-break {
+                page-break-before: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🤖 AI Development Guidelines</h1>
+    <h2>Best Practices aus der Lead-Crawler Entwicklung</h2>
+    
+    <div class="page-break"></div>
+    
+    <h2>1. Projekt-Struktur</h2>
+    
+    <h3>1.1 Package-Layout</h3>
+    <pre><code>project/
+├── src/
+│   ├── package_name/      # Core Package
+│   │   ├── __init__.py
+│   │   ├── config.py      # Zentrale Konfiguration
+│   │   ├── models/        # Domain Models
+│   │   ├── services/      # Business Logic
+│   │   ├── crawlers/      # External Interfaces
+│   │   └── pipelines/     # Workflows
+│   ├── api/               # FastAPI Backend
+│   └── web/               # Streamlit Frontend
+├── tests/
+│   ├── unit/              # Unit Tests
+│   ├── integration/       # Integration Tests
+│   └── fixtures/          # Test Data
+├── legacy/                # Alte Dateien (Referenz)
+├── docs/                  # Dokumentation
+├── pyproject.toml         # Modern Packaging
+├── README.md
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+└── TESTING.md</code></pre>
+    
+    <h3>1.2 Domain-Driven Design</h3>
+    <pre><code>models/          # Reine Datenstrukturen (dataclasses)
+├── company.py   # Company, Address, ContactInfo
+├── analysis.py  # BranchAnalysis, LLMAnalysisResult
+└── scoring.py   # LeadScore, ScoreBreakdown
+
+services/        # Business Logic
+├── cache.py     # SQLiteCache mit TTL
+├── llm_client.py # LLM Integration
+└── plz_service.py # PLZ-Suche
+
+pipelines/       # End-to-End Workflows
+├── lead_analysis.py  # Crawl → Analyze → Score
+└── export.py    # CSV/JSON/Excel Export</code></pre>
+    
+    <div class="page-break"></div>
+    
+    <h2>2. Testing</h2>
+    
+    <h3>2.1 Test-Pyramide</h3>
+    <pre><code>        /\
+       /  \       Integration Tests (13)
+      /____\     - Externe Services
+     /      \    
+    /________\   Unit Tests (146)
+   /          \  - Isoliert
+  /____________\ - Schnell</code></pre>
+    
+    <h3>2.2 Test-Kategorien</h3>
+    <table>
+        <tr>
+            <th>Marker</th>
+            <th>Beschreibung</th>
+            <th>Ausführung</th>
+        </tr>
+        <tr>
+            <td><code>@pytest.mark.unit</code></td>
+            <td>Isolierte Tests</td>
+            <td>Standard</td>
+        </tr>
+        <tr>
+            <td><code>@pytest.mark.integration</code></td>
+            <td>Externe Services</td>
+            <td><code>-m integration</code></td>
+        </tr>
+        <tr>
+            <td><code>@pytest.mark.slow</code></td>
+            <td>Langsame Tests</td>
+            <td><code>-m "not slow"</code></td>
+        </tr>
+    </table>
+    
+    <h3>2.3 Mock Services</h3>
+    <pre><code>class MockLLMClient:
+    """Mock für Tests ohne echte LLM-Verbindung."""
+    
+    def analyze_branch(self, name: str, content: str) -> dict[str, Any]:
+        return {
+            "branch": "IT-Dienstleistungen",
+            "confidence": 0.95,
+            "services": ["Web Development", "Mobile Apps"],
+        }</code></pre>
+    
+    <div class="page-break"></div>
+    
+    <h2>3. CI/CD</h2>
+    
+    <h3>3.1 GitHub Actions Workflow</h3>
+    <pre><code># .github/workflows/test.yml
+name: Tests
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+      - run: pip install -r requirements.txt
+      - run: pytest tests/unit/ -v --cov
+      
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install ruff black
+      - run: ruff check src/ tests/
+      - run: black --check src/ tests/</code></pre>
+    
+    <h3>3.2 Linting-Konfiguration</h3>
+    <pre><code># pyproject.toml
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F401", "F811", "E402", "I001", "N806"]
+"src/web/Home.py" = ["N999"]  # Streamlit requires Home.py
+
+[tool.black]
+line-length = 100
+target-version = ["py311", "py312"]</code></pre>
+    
+    <div class="page-break"></div>
+    
+    <h2>4. Refactoring-Prozess</h2>
+    
+    <h3>4.1 Phasierter Ansatz</h3>
+    <table>
+        <tr>
+            <th>Phase</th>
+            <th>Beschreibung</th>
+            <th>Dauer</th>
+        </tr>
+        <tr>
+            <td>1. Models</td>
+            <td>Domain Models erstellen</td>
+            <td>1-2 Tage</td>
+        </tr>
+        <tr>
+            <td>2. Config</td>
+            <td>Zentrale Konfiguration</td>
+            <td>0.5 Tage</td>
+        </tr>
+        <tr>
+            <td>3. Services</td>
+            <td>Business Logic extrahieren</td>
+            <td>1-2 Tage</td>
+        </tr>
+        <tr>
+            <td>4. Crawlers</td>
+            <td>Crawler-Architektur</td>
+            <td>1-2 Tage</td>
+        </tr>
+        <tr>
+            <td>5. Pipelines</td>
+            <td>Workflows definieren</td>
+            <td>1-2 Tage</td>
+        </tr>
+        <tr>
+            <td>6. API</td>
+            <td>REST API aufsetzen</td>
+            <td>1-2 Tage</td>
+        </tr>
+        <tr>
+            <td>7. Web</td>
+            <td>Frontend refactoren</td>
+            <td>1-2 Tage</td>
+        </tr>
+        <tr>
+            <td>8. Tests</td>
+            <td>Test-Suite erstellen</td>
+            <td>1-2 Tage</td>
+        </tr>
+    </table>
+    
+    <h3>4.2 Legacy-Handling</h3>
+    <pre><code>src/
+├── scraper.py          # ALT → legacy/
+├── enhanced_scraper.py # ALT → legacy/
+└── lead_crawler/       # NEU
+    ├── models/
+    └── services/</code></pre>
+    
+    <p><strong>Wichtig:</strong></p>
+    <ul>
+        <li>Alte Dateien nicht löschen, sondern nach <code>legacy/</code> verschieben</li>
+        <li>README in <code>legacy/</code> mit Migration Map</li>
+        <li>Nach erfolgreicher Tests: Legacy entfernen</li>
+    </ul>
+    
+    <h3>4.3 Test-First</h3>
+    <pre><code># 1. Test schreiben
+def test_company_creation():
+    company = Company(name="Test GmbH")
+    assert company.name == "Test GmbH"
+
+# 2. Implementieren
+@dataclass
+class Company:
+    name: str
+
+# 3. Test laufen lassen
+# pytest tests/unit/test_models.py -v</code></pre>
+    
+    <div class="page-break"></div>
+    
+    <h2>5. Code-Qualität</h2>
+    
+    <h3>5.1 Type Hints</h3>
+    <pre><code># ✅ Gut
+def calculate_score(company: Company) -> LeadScore:
+    ...
+
+# ❌ Schlecht
+def calculate_score(company):
+    ...</code></pre>
+    
+    <h3>5.2 Docstrings</h3>
+    <pre><code>def find_nearby_plz(plz: str, radius_km: float) -> list[PLZInfo]:
+    """Findet PLZ im Umkreis einer PLZ.
+    
+    Args:
+        plz: Ausgangs-PLZ (z.B. "2351")
+        radius_km: Radius in Kilometern
+        
+    Returns:
+        Liste von PLZInfo-Objekten im Umkreis
+        
+    Raises:
+        ValueError: Wenn PLZ ungültig
+    """</code></pre>
+    
+    <h3>5.3 Naming Conventions</h3>
+    <pre><code># Klassen: PascalCase
+class LeadScore:
+    ...
+
+# Funktionen/Variablen: snake_case
+def calculate_score():
+    total_score = 85
+
+# Konstanten: UPPER_SNAKE_CASE
+MAX_RADIUS_KM = 100
+DEFAULT_TTL_DAYS = 30
+
+# Private: _prefix
+def _normalize_url(url: str) -> str:
+    ...</code></pre>
+    
+    <div class="page-break"></div>
+    
+    <h2>6. Git Workflow</h2>
+    
+    <h3>6.1 Branch-Naming</h3>
+    <pre><code>feature/xxx    # Neue Features
+fix/xxx         # Bug Fixes
+refactor/xxx    # Code Refactoring
+docs/xxx        # Dokumentation
+test/xxx        # Tests</code></pre>
+    
+    <h3>6.2 Commit Messages</h3>
+    <pre><code>feat: Add new crawler for Ecoplus
+fix: Handle missing website gracefully
+refactor: Extract scoring logic to separate module
+docs: Update README with new API endpoints
+test: Add tests for PLZService
+chore: Update dependencies</code></pre>
+    
+    <h3>6.3 Pull Request Template</h3>
+    <pre><code>## Summary
+Brief description of changes.
+
+## Changes
+- ✅ Change 1
+- ✅ Change 2
+
+## Test Plan
+```bash
+pytest tests/ -v
+```
+
+## Breaking Changes
+Document any breaking changes.</code></pre>
+    
+    <div class="page-break"></div>
+    
+    <h2>7. Dokumentation</h2>
+    
+    <h3>7.1 README.md</h3>
+    <pre><code># Project Name
+
+## Features
+- Feature 1
+- Feature 2
+
+## Installation
+pip install -r requirements.txt
+
+## Quick Start
+python -m package_name
+
+## Testing
+pytest tests/ -v
+
+## License
+MIT</code></pre>
+    
+    <h3>7.2 CHANGELOG.md</h3>
+    <pre><code>## [2.0.0] - 2026-03-21
+
+### Added
+- Domain Models Package
+- Configuration System
+- Services Layer
+
+### Changed
+- **BREAKING**: Import paths changed
+
+### Removed
+- Legacy scraper.py</code></pre>
+    
+    <div class="page-break"></div>
+    
+    <h2>8. Performance</h2>
+    
+    <h3>8.1 Caching</h3>
+    <pre><code>class SQLiteCache:
+    """LRU Cache mit TTL für LLM-Resultate."""
+    
+    def get(self, key: str) -> dict | None:
+        """Hole aus Cache, wenn nicht expired."""
+        
+    def set(self, key: str, value: dict, ttl_days: int = 30):
+        """Speichere mit TTL."""</code></pre>
+    
+    <h3>8.2 Lazy Imports</h3>
+    <pre><code># ❌ Top-level Import (slow startup)
+from scrapy.crawler import CrawlerProcess
+
+# ✅ Lazy Import (nur wenn benötigt)
+def run_spider():
+    from scrapy.crawler import CrawlerProcess
+    ...</code></pre>
+    
+    <div class="page-break"></div>
+    
+    <h2>9. Security</h2>
+    
+    <h3>9.1 Environment Variables</h3>
+    <pre><code># .env
+OLLAMA_URL=http://localhost:11434
+API_KEY=secret-key-here
+
+# config.py
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    ollama_url: str
+    api_key: str
+    
+    class Config:
+        env_file = ".env"</code></pre>
+    
+    <h3>9.2 Input Validation</h3>
+    <pre><code>from pydantic import BaseModel, validator
+
+class SearchRequest(BaseModel):
+    plz: str
+    radius_km: float
+    
+    @validator('plz')
+    def validate_plz(cls, v):
+        if not v.isdigit() or len(v) != 4:
+            raise ValueError('PLZ muss 4-stellig sein')
+        return v</code></pre>
+    
+    <div class="page-break"></div>
+    
+    <h2>10. Deployment</h2>
+    
+    <h3>10.1 Docker</h3>
+    <pre><code>FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/ ./src/
+
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]</code></pre>
+    
+    <h3>10.2 PyPI Publishing</h3>
+    <pre><code># Build
+python -m build
+
+# Check
+twine check dist/*
+
+# Publish
+twine upload dist/*</code></pre>
+    
+    <div class="page-break"></div>
+    
+    <h2>✅ Checkliste für neue Projekte</h2>
+    
+    <ul class="checklist">
+        <li><code>pyproject.toml</code> erstellen</li>
+        <li><code>src/package_name/</code> Struktur</li>
+        <li>Domain Models in <code>models/</code></li>
+        <li>Services in <code>services/</code></li>
+        <li>Tests in <code>tests/unit/</code> und <code>tests/integration/</code></li>
+        <li><code>README.md</code>, <code>CHANGELOG.md</code>, <code>CONTRIBUTING.md</code></li>
+        <li><code>.github/workflows/test.yml</code></li>
+        <li><code>.github/dependabot.yml</code></li>
+        <li><code>.gitignore</code> für Python</li>
+        <li>Type Hints für alle Public APIs</li>
+        <li>Docstrings für alle Klassen/Funktionen</li>
+        <li>Ruff + Black konfigurieren</li>
+        <li>Branch Protection Rules setzen</li>
+    </ul>
+    
+    <div class="page-break"></div>
+    
+    <h2>📊 Projekt-Statistiken</h2>
+    
+    <table>
+        <tr>
+            <th>Metrik</th>
+            <th>Wert</th>
+        </tr>
+        <tr>
+            <td>Phasen</td>
+            <td>8</td>
+        </tr>
+        <tr>
+            <td>Commits</td>
+            <td>15+</td>
+        </tr>
+        <tr>
+            <td>Unit Tests</td>
+            <td>169</td>
+        </tr>
+        <tr>
+            <td>Integration Tests</td>
+            <td>13</td>
+        </tr>
+        <tr>
+            <td>Coverage</td>
+            <td>~85%</td>
+        </tr>
+        <tr>
+            <td>Python Versionen</td>
+            <td>3.11, 3.12, 3.13</td>
+        </tr>
+        <tr>
+            <td>CI Jobs</td>
+            <td>5 (test x3, lint, build)</td>
+        </tr>
+    </table>
+    
+    <div class="page-break"></div>
+    
+    <h2>🎯 Key Learnings</h2>
+    
+    <h3>Was gut funktionierte</h3>
+    <ol>
+        <li><strong>Phasierter Ansatz</strong> - Jede Phase hatte klare Ziele</li>
+        <li><strong>Test-First</strong> - Tests schrieben die Specs</li>
+        <li><strong>Legacy-Archiv</strong> - Alte Dateien als Referenz</li>
+        <li><strong>CI/CD von Anfang an</strong> - Automatische Qualitätssicherung</li>
+        <li><strong>Domain-Driven Design</strong> - Klare Trennung der Verantwortlichkeiten</li>
+    </ol>
+    
+    <h3>Was wir verbessern können</h3>
+    <ol>
+        <li><strong>Integration Tests früher</strong> - E2E Tests früher schreiben</li>
+        <li><strong>Mock-First</strong> - Mehr Mocking für schnellere Tests</li>
+        <li><strong>Dokumentation parallel</strong> - Nicht am Ende nachholen</li>
+        <li><strong>Performance Tests</strong> - Benchmarking integrieren</li>
+    </ol>
+    
+    <div class="page-break"></div>
+    
+    <h2>📚 Ressourcen</h2>
+    
+    <h3>Python Packaging</h3>
+    <ul>
+        <li>https://packaging.python.org/en/latest/</li>
+        <li>https://python-poetry.org/</li>
+    </ul>
+    
+    <h3>Testing</h3>
+    <ul>
+        <li>https://docs.pytest.org/</li>
+        <li>https://coverage.readthedocs.io/</li>
+    </ul>
+    
+    <h3>CI/CD</h3>
+    <ul>
+        <li>https://docs.github.com/en/actions</li>
+        <li>https://docs.github.com/en/code-security/dependabot</li>
+    </ul>
+    
+    <h3>Best Practices</h3>
+    <ul>
+        <li>https://realpython.com/python-project-structure/</li>
+        <li>https://docs.python-guide.org/</li>
+    </ul>
+    
+    <hr>
+    
+    <p><em>Diese Guidelines wurden aus der Entwicklung des Lead-Crawler Projekts abgeleitet.</em></p>
+    <p><em>Stand: 2026-03-21</em></p>
+</body>
+</html>
