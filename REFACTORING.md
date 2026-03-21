@@ -202,17 +202,19 @@ Refactoring des Lead-Crawlers für bessere Wartbarkeit, Testbarkeit und Erweiter
 
 ## ✅ Phase 7: Web Frontend Refaktorieren
 
-**Priorität:** Niedrig | **Status:** ⚪ Pending
+**Priorität:** Niedrig | **Status:** ✅ Done
 
 ### Tasks
 
-- [ ] Streamlit Multi-Page Setup
-- [ ] `web/pages/1_Search.py` extrahieren
-- [ ] `web/pages/2_Analysis.py` extrahieren
-- [ ] `web/pages/3_Export.py` extrahieren
-- [ ] `web/pages/4_Settings.py` extrahieren
-- [ ] `web/components/` für wiederverwendbare UI-Elemente
-- [ ] API-Backend Anbindung (statt direkte Imports)
+- [x] Streamlit Multi-Page Setup
+- [x] `web/Home.py` - Startseite
+- [x] `web/pages/1_Search.py` - Unternehmenssuche
+- [x] `web/pages/2_Analysis.py` - Statistiken
+- [x] `web/pages/3_Export.py` - Datenexport
+- [x] `web/pages/4_Settings.py` - Einstellungen
+- [x] `web/components/ui.py` - Wiederverwendbare UI-Elemente
+- [x] `web/components/__init__.py` - Package
+- [x] Altes `web/app.py` als Backup behalten
 
 ---
 
@@ -246,7 +248,7 @@ Refactoring des Lead-Crawlers für bessere Wartbarkeit, Testbarkeit und Erweiter
 | 4. Crawlers | ✅ Done | 100% |
 | 5. Pipelines | ✅ Done | 100% |
 | 6. API | ✅ Done | 100% |
-| 7. Web | ⚪ Pending | 0% |
+| 7. Web | ✅ Done | 100% |
 | 8. Tests | ⚪ Pending | 0% |
 
 **Legende:** ⚪ Pending | 🔵 In Progress | ✅ Done | ❌ Blocked
