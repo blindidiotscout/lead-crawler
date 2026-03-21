@@ -13,7 +13,7 @@ from pathlib import Path
 class OllamaConfig:
     """Ollama LLM Konfiguration"""
 
-    url: str = "http://localhost:11434"
+    url: str = "http://192.168.178.123:11434"
     model: str = "qwen2.5:7b"
     embedding_model: str = "nomic-embed-text"
     timeout: int = 300  # Sekunden
@@ -24,7 +24,7 @@ class OllamaConfig:
     def from_env(cls) -> "OllamaConfig":
         """Lädt Konfiguration aus Umgebungsvariablen"""
         return cls(
-            url=os.getenv("OLLAMA_URL", "http://localhost:11434"),
+            url=os.getenv("OLLAMA_URL", "http://192.168.178.123:11434"),
             model=os.getenv("OLLAMA_MODEL", "qwen2.5:7b"),
             embedding_model=os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text"),
             timeout=int(os.getenv("OLLAMA_TIMEOUT", "300")),
