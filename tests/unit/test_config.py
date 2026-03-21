@@ -32,7 +32,7 @@ class TestOllamaConfig:
     def test_create_default(self):
         """Default OllamaConfig erstellen"""
         config = OllamaConfig()
-        assert config.url == "http://localhost:11434"
+        assert config.url == "http://192.168.178.123:11434"
         assert config.model == "qwen2.5:7b"
         assert config.timeout == 300
 
