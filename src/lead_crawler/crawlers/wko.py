@@ -5,13 +5,10 @@ Spider für firmen.wko.at (Wirtschaftskammer Firmen A-Z)
 
 import json
 import os
+import subprocess
+import sys
 import tempfile
-import time
 from typing import Any
-
-# Twisted/Scrapy Signal-Handler für Streamlit deaktivieren
-os.environ["TWISTED_REACTOR"] = "asyncio"
-os.environ["TWISTED_DISABLE_SIGNAL_HANDLERS"] = "1"
 
 from lead_crawler.config import CrawlerConfig
 from lead_crawler.crawlers.base import BaseCrawler, CrawlerFactory, CrawlerResult, CrawlerStatus
@@ -58,12 +55,7 @@ class WKOCrawler(BaseCrawler):
     """
     Crawler für firmen.wko.at (WKO Firmen A-Z)
 
-    Verwendet direkte URLs im Format:
-    https://firmen.wko.at/{ort}/{bundesland}
-
-    Beispiel:
-    - https://firmen.wko.at/guntramsdorf/niederösterreich
-    - https://firmen.wko.at/wien/wien
+    Verwendet Subprocess für Scrapy (vermeidet Reactor-Probleme in Streamlit)
 
     Usage:
         from lead_crawler.crawlers import WKOCrawler
@@ -128,8 +120,8 @@ class WKOCrawler(BaseCrawler):
 
             self.logger.info(f"Crawling {len(crawl_urls)} URL(s)")
 
-            # Scrapy ausführen
-            companies = self._run_scrapy(crawl_urls, max_pages)
+            # Scrapy in Subprocess ausführen
+            companies = self._run_scrapy_subprocess(crawl_urls, max_pages)
 
             result.companies = companies
             self.status = CrawlerStatus.COMPLETED
@@ -186,9 +178,9 @@ class WKOCrawler(BaseCrawler):
 
         return urls
 
-    def _run_scrapy(self, urls: list[str], max_pages: int) -> list[Company]:
+    def _run_scrapy_subprocess(self, urls: list[str], max_pages: int) -> list[Company]:
         """
-        Führt Scrapy Spider aus
+        Führt Scrapy Spider in Subprocess aus (für Streamlit-Kompatibilität)
 
         Args:
             urls: URLs zum Crawlen
@@ -197,59 +189,70 @@ class WKOCrawler(BaseCrawler):
         Returns:
             Liste von Company-Objekten
         """
-        # Scrapy importieren (lazy, da optional)
-        try:
-            from scrapy.crawler import CrawlerProcess
-        except ImportError:
-            self.logger.error("Scrapy not installed. Run: pip install scrapy")
-            return []
-
         # Temporäre Ausgabedatei
         output_file = tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False)
         output_path = output_file.name
         output_file.close()
 
-        # Scrapy Settings - Signal-Handler für Streamlit deaktivieren
-        settings = {
-            "FEEDS": {output_path: {"format": "jsonlines"}},
-            "LOG_LEVEL": "WARNING",
-            "USER_AGENT": self.config.user_agent,
-            "ROBOTSTXT_OBEY": self.config.respect_robots_txt,
-            "DOWNLOAD_DELAY": self.config.rate_limit,
-            "CONCURRENT_REQUESTS_PER_DOMAIN": self.config.concurrent_requests,
-            # Signal-Handler deaktivieren (für Streamlit-Kompatibilität)
-            "TELNETCONSOLE_ENABLED": False,
-            "EXTENSIONS": {"scrapy.extensions.telnet.TelnetConsole": None},
-        }
-
         companies = []
 
         try:
-            # Spider aus eigenem Modul importieren
-            from lead_crawler.crawlers.spider import WkoSpider
+            # Spider-Code für Subprocess
+            spider_code = f"""
+import json
+import sys
+from pathlib import Path
 
-            # Crawler Process
-            process = CrawlerProcess(settings)
-            process.crawl(WkoSpider, urls=urls)
-            process.start()
+# Pfad zum Package hinzufügen
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
+
+from scrapy.crawler import CrawlerProcess
+from lead_crawler.crawlers.spider import WkoSpider
+
+settings = {{
+    "FEEDS": {{r"{output_path}": {{"format": "jsonlines"}}}},
+    "LOG_LEVEL": "ERROR",
+    "USER_AGENT": r"{self.config.user_agent}",
+    "ROBOTSTXT_OBEY": {self.config.respect_robots_txt},
+    "DOWNLOAD_DELAY": {self.config.rate_limit},
+    "CONCURRENT_REQUESTS_PER_DOMAIN": {self.config.concurrent_requests},
+}}
+
+urls = {urls}
+
+process = CrawlerProcess(settings)
+process.crawl(WkoSpider, urls=urls)
+process.start()
+"""
+
+            # Subprocess ausführen
+            result = subprocess.run(
+                [sys.executable, "-c", spider_code],
+                capture_output=True,
+                text=True,
+                timeout=120,  # 2 Minuten Timeout
+            )
+
+            if result.returncode != 0:
+                self.logger.error(f"Scrapy subprocess failed: {result.stderr[:500]}")
 
             # Ergebnisse laden
-            with open(output_path) as f:
-                for line in f:
-                    if line.strip():
-                        data = json.loads(line)
-                        company = self._parse_item(data)
-                        if company:
-                            companies.append(company)
-                            self._track_success()
+            if os.path.exists(output_path):
+                with open(output_path) as f:
+                    for line in f:
+                        if line.strip():
+                            data = json.loads(line)
+                            company = self._parse_item(data)
+                            if company:
+                                companies.append(company)
+                                self._track_success()
 
+        except subprocess.TimeoutExpired:
+            self.logger.error("Scrapy subprocess timed out")
+            self._track_error("Scrapy subprocess timed out")
         except Exception as e:
-            self.logger.error(f"Scrapy error details: {type(e).__name__}: {e}")
-            import traceback
-
-            self.logger.debug(traceback.format_exc())
+            self.logger.error(f"Scrapy error: {type(e).__name__}: {e}")
             self._track_error(f"Scrapy failed: {e}")
-
         finally:
             # Temp-Datei aufräumen
             if os.path.exists(output_path):
@@ -290,153 +293,49 @@ class WKOCrawler(BaseCrawler):
             "website": data.get("website"),
         }
 
-        # Company erstellen
-        company = self.create_company(
+        # Source URL
+        url = data.get("url", "")
+        if not url:
+            url = data.get("source_url", "")
+
+        return Company(
             name=name,
+            url=url,
             address=address,
             contact=contact,
-            branche=data.get("branche"),
-            url=data.get("url"),
+            source=CompanySource.WKO,
+            metadata={"raw": data},
         )
-
-        # Source URL
-        company.metadata.source_url = data.get("url")
-
-        return company
-
-    def crawl_radius(
-        self,
-        center_plz: str,
-        radius_km: float = 20.0,
-        max_plz: int | None = None,
-        dedup: bool = True,
-    ) -> CrawlerResult:
-        """
-        Crawlt alle Unternehmen im Radius um eine PLZ
-
-        Args:
-            center_plz: Zentrale PLZ (z.B. "2351")
-            radius_km: Radius in Kilometern (default: 20)
-            max_plz: Maximale Anzahl PLZs (optional, für Rate-Limiting)
-            dedup: Duplikate entfernen (default: True)
-
-        Returns:
-            CrawlerResult mit allen gefundenen Unternehmen
-        """
-        self._start_crawl()
-        result = CrawlerResult()
-
-        try:
-            # PLZs im Radius finden
-            search_result = self.plz_service.find_in_radius(center_plz, radius_km)
-
-            if not search_result.results:
-                self.logger.info(f"No PLZs found in {radius_km}km radius around {center_plz}")
-                self.status = CrawlerStatus.COMPLETED
-                return self._finish_crawl(result)
-
-            plzs = search_result.plzs
-
-            # Optional limitieren
-            if max_plz:
-                plzs = plzs[:max_plz]
-
-            self.logger.info(
-                f"Crawling {len(plzs)} PLZs in {radius_km}km radius around {center_plz}"
-            )
-
-            # Unique PLZs (manche PLZ haben mehrere Orte)
-            seen_plzs = set()
-            all_companies = []
-
-            for plz in plzs:
-                if plz in seen_plzs:
-                    continue
-                seen_plzs.add(plz)
-
-                self.logger.info(f"Crawling PLZ {plz}")
-
-                # Crawl für diese PLZ
-                crawl_result = self.crawl(plz=plz)
-                all_companies.extend(crawl_result.companies)
-
-                # Stats mergen
-                self._stats["pages_crawled"] += crawl_result.stats.get("pages_crawled", 0)
-                result.errors.extend(crawl_result.errors)
-
-                # Rate-Limiting
-                time.sleep(self.config.rate_limit)
-
-            # Deduplizierung
-            if dedup:
-                all_companies = self._deduplicate(all_companies)
-
-            result.companies = all_companies
-            self.status = CrawlerStatus.COMPLETED
-
-        except Exception as e:
-            self.logger.error(f"Radius crawl failed: {e}")
-            self.status = CrawlerStatus.FAILED
-            result.errors.append({"error": str(e)})
-
-        return self._finish_crawl(result)
-
-    def _deduplicate(self, companies: list[Company]) -> list[Company]:
-        """
-        Entfernt Duplikate aus der Unternehmensliste
-
-        Duplikat = gleicher Name + gleiche PLZ + gleiche Straße
-        """
-        seen = set()
-        unique = []
-
-        for company in companies:
-            # Key: Name + PLZ + Straße (normalisiert)
-            name = (company.name or "").lower().strip()
-            plz = company.address.plz or ""
-            street = (company.address.street or "").lower().strip()
-
-            key = (name, plz, street)
-
-            if key not in seen:
-                seen.add(key)
-                unique.append(company)
-
-        self.logger.info(f"Deduplicated: {len(companies)} → {len(unique)} companies")
-        return unique
-
-    def search_plz(self, plz: str) -> list[str]:
-        """
-        Gibt WKO-URLs für eine PLZ zurück
-
-        Args:
-            plz: 4-stellige PLZ
-
-        Returns:
-            Liste von WKO URLs
-        """
-        return self._build_urls(plz=plz, ort=None, bundesland=None)
 
 
 # Convenience-Funktion
 def crawl_wko(
-    plz: str | None = None, ort: str | None = None, bundesland: str | None = None, **kwargs
+    plz: str | None = None,
+    ort: str | None = None,
+    bundesland: str | None = None,
+    urls: list[str] | None = None,
+    config: CrawlerConfig | None = None,
 ) -> CrawlerResult:
     """
     Convenience-Funktion für WKO Crawl
 
     Usage:
-        from lead_crawler.crawlers.wko import crawl_wko
+        from lead_crawler.crawlers import crawl_wko
 
         # PLZ-Suche
         result = crawl_wko(plz="2351")
 
         # Ortssuche
         result = crawl_wko(ort="Guntramsdorf", bundesland="niederösterreich")
+
+        # Direkte URLs
+        result = crawl_wko(urls=["https://firmen.wko.at/guntramsdorf/niederösterreich"])
     """
-    crawler = WKOCrawler()
-    return crawler.crawl(plz=plz, ort=ort, bundesland=bundesland, **kwargs)
+    crawler = WKOCrawler(config)
+    return crawler.crawl(plz=plz, ort=ort, bundesland=bundesland, urls=urls)
 
 
-# Export
-__all__ = ["WKOCrawler", "crawl_wko", "CrawlerFactory"]
+__all__ = [
+    "WKOCrawler",
+    "crawl_wko",
+]
