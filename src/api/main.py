@@ -5,15 +5,14 @@ FastAPI Backend für n8n Integration und externe Clients
 
 import time
 from contextlib import asynccontextmanager
-from typing import Dict, Optional
-from fastapi import FastAPI, Request, Response
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.openapi.docs import get_swagger_ui_html
 
-from lead_crawler.config import get_settings
+from api.routes import analyze_router, company_router, export_router, search_router
 from api.schemas import HealthResponse, StatusResponse
-from api.routes import search_router, company_router, analyze_router, export_router
+from lead_crawler.config import get_settings
 
 
 # Startup/Shutdown Context Manager
@@ -23,13 +22,13 @@ async def lifespan(app: FastAPI):
     # Startup
     start_time = time.time()
     app.state.start_time = start_time
-    print(f"[API] Lead Crawler API starting...")
+    print("[API] Lead Crawler API starting...")
     print(f"[API] Version: {app.version}")
 
     yield
 
     # Shutdown
-    print(f"[API] Lead Crawler API shutting down...")
+    print("[API] Lead Crawler API shutting down...")
 
 
 # App erstellen
@@ -60,7 +59,7 @@ Vereinfachte Endpoints für n8n Workflows:
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    openapi_url="/openapi.json",
 )
 
 
@@ -89,17 +88,15 @@ async def root() -> HealthResponse:
     """
     Root Endpoint mit API-Informationen.
     """
-    services = {
-        "cache": True,
-        "llm": True,  # Wird beim ersten Request geprüft
-        "crawler": True
-    }
+    services = {"cache": True, "llm": True, "crawler": True}  # Wird beim ersten Request geprüft
 
     return HealthResponse(
         status="ok",
         version="2.0.0",
         services=services,
-        uptime_seconds=time.time() - app.state.start_time if hasattr(app.state, "start_time") else 0
+        uptime_seconds=(
+            time.time() - app.state.start_time if hasattr(app.state, "start_time") else 0
+        ),
     )
 
 
@@ -108,17 +105,15 @@ async def health() -> HealthResponse:
     """
     Health Check Endpoint.
     """
-    services = {
-        "cache": True,
-        "llm": True,
-        "crawler": True
-    }
+    services = {"cache": True, "llm": True, "crawler": True}
 
     return HealthResponse(
         status="ok",
         version="2.0.0",
         services=services,
-        uptime_seconds=time.time() - app.state.start_time if hasattr(app.state, "start_time") else 0
+        uptime_seconds=(
+            time.time() - app.state.start_time if hasattr(app.state, "start_time") else 0
+        ),
     )
 
 
@@ -131,7 +126,7 @@ async def status_check() -> StatusResponse:
         status="running",
         active_jobs=0,  # TODO: Echte Job-Anzahl
         cache_size=0,  # TODO: Echte Cache-Größe
-        last_crawl=None
+        last_crawl=None,
     )
 
 
@@ -141,11 +136,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     """Globaler Error Handler"""
     return JSONResponse(
         status_code=500,
-        content={
-            "error": "Internal Server Error",
-            "detail": str(exc),
-            "code": "INTERNAL_ERROR"
-        }
+        content={"error": "Internal Server Error", "detail": str(exc), "code": "INTERNAL_ERROR"},
     )
 
 
@@ -164,8 +155,8 @@ async def get_openapi_n8n():
         tags=[
             {"name": "search", "description": "Suche nach Unternehmen"},
             {"name": "company", "description": "Unternehmens-Details"},
-            {"name": "export", "description": "Export von Daten"}
-        ]
+            {"name": "export", "description": "Export von Daten"},
+        ],
     )
 
     # Nur n8n-relevante Endpoints behalten
@@ -184,10 +175,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "api.main:app",
-        host=settings.api.host,
-        port=settings.api.port,
-        reload=settings.api.debug
+        "api.main:app", host=settings.api.host, port=settings.api.port, reload=settings.api.debug
     )
 
 

@@ -4,10 +4,11 @@ Testet End-to-End Workflows
 """
 
 import sys
-from pathlib import Path
-import pytest
-from unittest.mock import Mock
 import tempfile
+from pathlib import Path
+from unittest.mock import Mock
+
+import pytest
 
 # Add src directory to path for imports
 src_path = Path(__file__).parent.parent.parent / "src"
@@ -16,7 +17,13 @@ if str(src_path) not in sys.path:
 
 from lead_crawler.config import get_settings
 from lead_crawler.models import Company
-from lead_crawler.pipelines import LeadAnalysisPipeline, ExportPipeline, PipelineResult, BatchResult, ExportConfig
+from lead_crawler.pipelines import (
+    BatchResult,
+    ExportConfig,
+    ExportPipeline,
+    LeadAnalysisPipeline,
+    PipelineResult,
+)
 from tests.fixtures.sample_data import SAMPLE_COMPANIES
 
 
@@ -45,7 +52,7 @@ class TestLeadAnalysisPipelineUnit:
             analysis=None,
             score=None,
             from_cache=False,
-            analyze_time=1.5
+            analyze_time=1.5,
         )
 
         assert result.company.name == "Test"
@@ -56,11 +63,7 @@ class TestLeadAnalysisPipelineUnit:
         """PipelineResult to_dict()"""
         company = Company(name="Test GmbH")
         result = PipelineResult(
-            company=company,
-            analysis=None,
-            score=None,
-            from_cache=True,
-            analyze_time=0.5
+            company=company, analysis=None, score=None, from_cache=True, analyze_time=0.5
         )
 
         result_dict = result.to_dict()
@@ -69,13 +72,7 @@ class TestLeadAnalysisPipelineUnit:
 
     def test_batch_result_creation(self):
         """BatchResult wird korrekt erstellt"""
-        result = BatchResult(
-            results=[],
-            total=0,
-            successful=0,
-            failed=0,
-            total_time=0.0
-        )
+        result = BatchResult(results=[], total=0, successful=0, failed=0, total_time=0.0)
 
         assert result.total == 0
         assert result.successful == 0
@@ -83,17 +80,23 @@ class TestLeadAnalysisPipelineUnit:
     def test_batch_result_with_results(self):
         """BatchResult mit Ergebnissen"""
         results = [
-            PipelineResult(company=Company(name="Test1"), analysis=None, score=None, from_cache=False, analyze_time=1.0),
-            PipelineResult(company=Company(name="Test2"), analysis=None, score=None, from_cache=True, analyze_time=0.5)
+            PipelineResult(
+                company=Company(name="Test1"),
+                analysis=None,
+                score=None,
+                from_cache=False,
+                analyze_time=1.0,
+            ),
+            PipelineResult(
+                company=Company(name="Test2"),
+                analysis=None,
+                score=None,
+                from_cache=True,
+                analyze_time=0.5,
+            ),
         ]
 
-        batch = BatchResult(
-            results=results,
-            total=2,
-            successful=2,
-            failed=0,
-            total_time=1.5
-        )
+        batch = BatchResult(results=results, total=2, successful=2, failed=0, total_time=1.5)
 
         assert batch.total == 2
         assert batch.successful == 2
@@ -101,7 +104,15 @@ class TestLeadAnalysisPipelineUnit:
 
     def test_batch_result_to_dict(self):
         """BatchResult to_dict()"""
-        results = [PipelineResult(company=Company(name="Test"), analysis=None, score=None, from_cache=False, analyze_time=1.0)]
+        results = [
+            PipelineResult(
+                company=Company(name="Test"),
+                analysis=None,
+                score=None,
+                from_cache=False,
+                analyze_time=1.0,
+            )
+        ]
         batch = BatchResult(results=results, total=1, successful=1, failed=0, total_time=1.0)
 
         batch_dict = batch.to_dict()
@@ -131,9 +142,7 @@ class TestLeadAnalysisPipelineIntegration:
         """Gibt einen Mock-LLM-Client zurück"""
         llm = Mock()
         llm.analyze_branch.return_value = Mock(
-            branch="IT-Dienstleistungen",
-            confidence=0.9,
-            services=["Web", "Mobile"]
+            branch="IT-Dienstleistungen", confidence=0.9, services=["Web", "Mobile"]
         )
         llm.is_available.return_value = True
         return llm
@@ -147,7 +156,7 @@ class TestLeadAnalysisPipelineIntegration:
             title="Test Firma",
             main_text="Test content",
             about_text="About us",
-            services_text="Our services"
+            services_text="Our services",
         )
         return extractor
 
@@ -201,10 +210,7 @@ class TestExportPipelineUnit:
 
     def test_export_config_creation(self):
         """ExportConfig wird korrekt erstellt"""
-        config = ExportConfig(
-            output_format="csv",
-            min_score=50
-        )
+        config = ExportConfig(output_format="csv", min_score=50)
 
         assert config.output_format == "csv"
         assert config.min_score == 50

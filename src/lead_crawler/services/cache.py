@@ -3,16 +3,13 @@ Cache Service
 SQLite-basierter Cache für LLM-Analysen und andere Daten
 """
 
-import sqlite3
 import json
-from abc import ABC, abstractmethod
+import sqlite3
 from datetime import datetime, timedelta
-from typing import Optional, Dict, List, Any, Protocol
 from pathlib import Path
-from dataclasses import dataclass
+from typing import Any, Protocol
 
-from lead_crawler.config import get_settings, CacheConfig
-from lead_crawler.models.analysis import BranchAnalysis, CacheEntry
+from lead_crawler.config import CacheConfig, get_settings
 
 
 class CacheService(Protocol):
@@ -21,11 +18,11 @@ class CacheService(Protocol):
     Definiert die Schnittstelle für alle Cache-Implementierungen
     """
 
-    def get(self, key: str) -> Optional[Dict[str, Any]]:
+    def get(self, key: str) -> dict[str, Any] | None:
         """Holt Wert aus Cache"""
         ...
 
-    def set(self, key: str, value: Dict[str, Any], ttl_seconds: Optional[int] = None) -> None:
+    def set(self, key: str, value: dict[str, Any], ttl_seconds: int | None = None) -> None:
         """Setzt Wert im Cache"""
         ...
 
@@ -41,7 +38,7 @@ class CacheService(Protocol):
         """Löscht alle Einträge, gibt Anzahl zurück"""
         ...
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Gibt Cache-Statistiken zurück"""
         ...
 
@@ -62,7 +59,7 @@ class SQLiteCache:
         result = cache.get("https://example.com")
     """
 
-    def __init__(self, config: Optional[CacheConfig] = None):
+    def __init__(self, config: CacheConfig | None = None):
         """
         Initialisiert Cache
 
@@ -112,14 +109,14 @@ class SQLiteCache:
         """Normalisiert Key für konsistenten Cache-Lookup"""
         # URLs normalisieren
         key = key.lower().strip()
-        if key.startswith('https://'):
+        if key.startswith("https://"):
             key = key[8:]
-        elif key.startswith('http://'):
+        elif key.startswith("http://"):
             key = key[7:]
-        key = key.rstrip('/')
+        key = key.rstrip("/")
         return key
 
-    def get(self, key: str) -> Optional[Dict[str, Any]]:
+    def get(self, key: str) -> dict[str, Any] | None:
         """
         Holt Wert aus Cache
 
@@ -135,34 +132,44 @@ class SQLiteCache:
             conn.row_factory = sqlite3.Row
 
             # Prüfe ob Eintrag existiert und nicht abgelaufen
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT value, created_at, accessed_at, expires_at, metadata
                 FROM cache_entries
                 WHERE key = ?
                 AND (expires_at IS NULL OR expires_at > datetime('now'))
-            """, (normalized_key,))
+            """,
+                (normalized_key,),
+            )
 
             row = cursor.fetchone()
 
             if row:
                 # Update accessed_at
-                conn.execute("""
+                conn.execute(
+                    """
                     UPDATE cache_entries
                     SET accessed_at = CURRENT_TIMESTAMP
                     WHERE key = ?
-                """, (normalized_key,))
+                """,
+                    (normalized_key,),
+                )
                 conn.commit()
 
-                value = json.loads(row['value'])
-                value['_cached'] = True
-                value['_cached_at'] = row['created_at']
+                value = json.loads(row["value"])
+                value["_cached"] = True
+                value["_cached_at"] = row["created_at"]
                 return value
 
             return None
 
-    def set(self, key: str, value: Dict[str, Any],
-            ttl_seconds: Optional[int] = None,
-            metadata: Optional[Dict[str, Any]] = None) -> None:
+    def set(
+        self,
+        key: str,
+        value: dict[str, Any],
+        ttl_seconds: int | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
         """
         Speichert Wert im Cache
 
@@ -181,19 +188,22 @@ class SQLiteCache:
         expires_at = datetime.now() + timedelta(seconds=ttl_seconds)
 
         # Value ohne interne Felder speichern
-        clean_value = {k: v for k, v in value.items() if not k.startswith('_')}
+        clean_value = {k: v for k, v in value.items() if not k.startswith("_")}
 
         with sqlite3.connect(str(self.db_path)) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT OR REPLACE INTO cache_entries (
                     key, value, created_at, accessed_at, expires_at, metadata
                 ) VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?)
-            """, (
-                normalized_key,
-                json.dumps(clean_value),
-                expires_at.isoformat() if ttl_seconds else None,
-                json.dumps(metadata) if metadata else None
-            ))
+            """,
+                (
+                    normalized_key,
+                    json.dumps(clean_value),
+                    expires_at.isoformat() if ttl_seconds else None,
+                    json.dumps(metadata) if metadata else None,
+                ),
+            )
             conn.commit()
 
     def delete(self, key: str) -> bool:
@@ -209,10 +219,7 @@ class SQLiteCache:
         normalized_key = self._normalize_key(key)
 
         with sqlite3.connect(str(self.db_path)) as conn:
-            cursor = conn.execute(
-                "DELETE FROM cache_entries WHERE key = ?",
-                (normalized_key,)
-            )
+            cursor = conn.execute("DELETE FROM cache_entries WHERE key = ?", (normalized_key,))
             conn.commit()
             return cursor.rowcount > 0
 
@@ -248,7 +255,7 @@ class SQLiteCache:
             conn.commit()
             return cursor.rowcount
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """
         Cache-Statistiken
 
@@ -291,17 +298,17 @@ class SQLiteCache:
             top_branches = {row[0]: row[1] for row in cursor.fetchall() if row[0]}
 
             return {
-                'total_entries': total,
-                'expired_entries': expired,
-                'valid_entries': valid,
-                'avg_confidence': round(avg_confidence, 2),
-                'top_branches': top_branches,
-                'db_path': str(self.db_path),
-                'ttl_days': self.ttl_days,
-                'max_entries': self.max_entries
+                "total_entries": total,
+                "expired_entries": expired,
+                "valid_entries": valid,
+                "avg_confidence": round(avg_confidence, 2),
+                "top_branches": top_branches,
+                "db_path": str(self.db_path),
+                "ttl_days": self.ttl_days,
+                "max_entries": self.max_entries,
             }
 
-    def get_all_keys(self, limit: int = 100) -> List[str]:
+    def get_all_keys(self, limit: int = 100) -> list[str]:
         """
         Holt alle Cache-Keys
 
@@ -313,12 +320,11 @@ class SQLiteCache:
         """
         with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.execute(
-                "SELECT key FROM cache_entries ORDER BY created_at DESC LIMIT ?",
-                (limit,)
+                "SELECT key FROM cache_entries ORDER BY created_at DESC LIMIT ?", (limit,)
             )
             return [row[0] for row in cursor.fetchall()]
 
-    def get_many(self, keys: List[str]) -> Dict[str, Optional[Dict]]:
+    def get_many(self, keys: list[str]) -> dict[str, dict | None]:
         """
         Holt mehrere Werte gleichzeitig
 
@@ -330,8 +336,7 @@ class SQLiteCache:
         """
         return {key: self.get(key) for key in keys}
 
-    def set_many(self, items: Dict[str, Dict],
-                 ttl_seconds: Optional[int] = None) -> None:
+    def set_many(self, items: dict[str, dict], ttl_seconds: int | None = None) -> None:
         """
         Setzt mehrere Werte gleichzeitig
 
@@ -344,7 +349,7 @@ class SQLiteCache:
 
     # Legacy-Kompatibilität für LLM-Analysen
 
-    def get_analysis(self, url: str) -> Optional[Dict[str, Any]]:
+    def get_analysis(self, url: str) -> dict[str, Any] | None:
         """
         Holt LLM-Analyse aus Cache (Legacy-Methode)
 
@@ -356,11 +361,12 @@ class SQLiteCache:
         """
         result = self.get(url)
         if result:
-            result['cached'] = True
+            result["cached"] = True
         return result
 
-    def set_analysis(self, url: str, analysis: Dict[str, Any],
-                     company_name: Optional[str] = None) -> None:
+    def set_analysis(
+        self, url: str, analysis: dict[str, Any], company_name: str | None = None
+    ) -> None:
         """
         Speichert LLM-Analyse im Cache (Legacy-Methode)
 
@@ -370,7 +376,7 @@ class SQLiteCache:
             company_name: Optionaler Unternehmensname
         """
         if company_name:
-            analysis['company_name'] = company_name
+            analysis["company_name"] = company_name
         self.set(url, analysis)
 
     def invalidate(self, key: str) -> bool:
@@ -379,7 +385,7 @@ class SQLiteCache:
 
 
 # Singleton-Instanz (Lazy)
-_cache_instance: Optional[SQLiteCache] = None
+_cache_instance: SQLiteCache | None = None
 
 
 def get_cache() -> SQLiteCache:

@@ -10,25 +10,26 @@ src_path = Path(__file__).parent.parent.parent / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-import pytest
 from datetime import datetime
 
+import pytest
+
 from lead_crawler.models import (
-    Company,
     Address,
-    ContactInfo,
+    BranchAnalysis,
+    Bundesland,
+    Company,
     CompanyMetadata,
     CompanySource,
-    BranchAnalysis,
-    LLMAnalysisResult,
+    ContactInfo,
     LeadScore,
-    ScoreBreakdown,
+    LLMAnalysisResult,
     PLZCoordinate,
     PLZInfo,
     PLZSearchResult,
-    Bundesland,
-    plz_to_bundesland,
+    ScoreBreakdown,
     is_valid_plz,
+    plz_to_bundesland,
 )
 
 
@@ -38,10 +39,7 @@ class TestAddress:
     def test_create_address(self):
         """Address erstellen"""
         addr = Address(
-            street="Hauptstraße 1",
-            plz="2351",
-            ort="Guntramsdorf",
-            bundesland="Niederösterreich"
+            street="Hauptstraße 1", plz="2351", ort="Guntramsdorf", bundesland="Niederösterreich"
         )
         assert addr.street == "Hauptstraße 1"
         assert addr.plz == "2351"
@@ -49,12 +47,7 @@ class TestAddress:
 
     def test_address_from_dict(self):
         """Address aus Dictionary erstellen"""
-        data = {
-            "street": "Teststraße 5",
-            "plz": "1010",
-            "ort": "Wien",
-            "bundesland": "Wien"
-        }
+        data = {"street": "Teststraße 5", "plz": "1010", "ort": "Wien", "bundesland": "Wien"}
         addr = Address.from_dict(data)
         assert addr.street == "Teststraße 5"
         assert addr.plz == "1010"
@@ -74,9 +67,7 @@ class TestContactInfo:
     def test_create_contact_info(self):
         """ContactInfo erstellen"""
         contact = ContactInfo(
-            telefon="+43 123 456",
-            email="test@example.com",
-            website="https://example.com"
+            telefon="+43 123 456", email="test@example.com", website="https://example.com"
         )
         assert contact.telefon == "+43 123 456"
         assert contact.email == "test@example.com"
@@ -85,9 +76,7 @@ class TestContactInfo:
         """Contact-Qualitäts-Score"""
         # Alles vorhanden
         contact_full = ContactInfo(
-            telefon="+43 123",
-            email="test@example.com",
-            website="https://example.com"
+            telefon="+43 123", email="test@example.com", website="https://example.com"
         )
         assert contact_full.contact_score == 25.0
 
@@ -126,7 +115,7 @@ class TestCompany:
             "telefon": "+43 123 456",
             "email": "info@akras.at",
             "website": "https://www.akras.at",
-            "source": "firmen.wko.at"
+            "source": "firmen.wko.at",
         }
 
         company = Company.from_dict(data)
@@ -142,7 +131,7 @@ class TestCompany:
         company = Company(
             name="Test GmbH",
             address=Address(plz="2351", ort="Guntramsdorf"),
-            contact=ContactInfo(email="test@example.com")
+            contact=ContactInfo(email="test@example.com"),
         )
         data = company.to_dict()
         assert data["name"] == "Test GmbH"
@@ -151,10 +140,7 @@ class TestCompany:
 
     def test_company_str(self):
         """Company String-Repräsentation"""
-        company = Company(
-            name="Test GmbH",
-            address=Address(plz="2351", ort="Guntramsdorf")
-        )
+        company = Company(name="Test GmbH", address=Address(plz="2351", ort="Guntramsdorf"))
         assert "Test GmbH" in str(company)
         assert "2351" in str(company)
 
@@ -165,9 +151,7 @@ class TestBranchAnalysis:
     def test_create_analysis(self):
         """BranchAnalysis erstellen"""
         analysis = BranchAnalysis(
-            branch="Industrie/Fertigung",
-            confidence=0.85,
-            services=["Produktion", "Beratung"]
+            branch="Industrie/Fertigung", confidence=0.85, services=["Produktion", "Beratung"]
         )
         assert analysis.branch == "Industrie/Fertigung"
         assert analysis.confidence == 0.85
@@ -186,9 +170,7 @@ class TestBranchAnalysis:
     def test_analysis_to_dict(self):
         """Analysis zu Dictionary"""
         analysis = BranchAnalysis(
-            branch="IT",
-            services=["Entwicklung", "Beratung"],
-            confidence=0.75
+            branch="IT", services=["Entwicklung", "Beratung"], confidence=0.75
         )
         data = analysis.to_dict()
         assert data["branch"] == "IT"
@@ -205,7 +187,7 @@ class TestLLMAnalysisResult:
             company_name="Test GmbH",
             website_url="https://example.com",
             analysis=BranchAnalysis(branch="IT", confidence=0.8),
-            cached=False
+            cached=False,
         )
         assert result.company_name == "Test GmbH"
         assert result.is_successful is True
@@ -214,18 +196,13 @@ class TestLLMAnalysisResult:
     def test_cached_result(self):
         """Cached Result"""
         result = LLMAnalysisResult(
-            company_name="Test",
-            analysis=BranchAnalysis(branch="Test"),
-            cached=True
+            company_name="Test", analysis=BranchAnalysis(branch="Test"), cached=True
         )
         assert result.is_cached is True
 
     def test_error_result(self):
         """Result mit Error"""
-        result = LLMAnalysisResult(
-            company_name="Test",
-            error="Crawl fehlgeschlagen"
-        )
+        result = LLMAnalysisResult(company_name="Test", error="Crawl fehlgeschlagen")
         assert result.is_successful is False
         assert result.analysis is None
 
@@ -236,12 +213,7 @@ class TestScoreBreakdown:
     def test_create_breakdown(self):
         """ScoreBreakdown erstellen"""
         breakdown = ScoreBreakdown(
-            contact=20.0,
-            location=15.0,
-            branch=18.0,
-            completeness=12.0,
-            freshness=8.0,
-            size=7.0
+            contact=20.0, location=15.0, branch=18.0, completeness=12.0, freshness=8.0, size=7.0
         )
         assert breakdown.contact == 20.0
         assert breakdown.total == 80.0
@@ -255,7 +227,7 @@ class TestScoreBreakdown:
             "branch": 18.0,
             "completeness": 10.0,
             "freshness": 5.0,
-            "size": 5.0
+            "size": 5.0,
         }
         breakdown = ScoreBreakdown.from_dict(data)
         assert breakdown.total == 63.0
@@ -268,7 +240,7 @@ class TestScoreBreakdown:
             branch=18.0,
             completeness=12.0,
             freshness=8.0,
-            size=7.0
+            size=7.0,
         )
         assert breakdown.get_weakest_category() == "location"
 
@@ -280,7 +252,7 @@ class TestScoreBreakdown:
             branch=18.0,
             completeness=12.0,
             freshness=8.0,
-            size=5.0
+            size=5.0,
         )
         assert breakdown.get_strongest_category() == "contact"
 
@@ -293,11 +265,12 @@ class TestLeadScore:
         score = LeadScore(
             name="Test GmbH",
             total_score=75.0,
-            breakdown=ScoreBreakdown(contact=20.0, location=15.0, branch=15.0,
-                                     completeness=12.0, freshness=8.0, size=5.0),
+            breakdown=ScoreBreakdown(
+                contact=20.0, location=15.0, branch=15.0, completeness=12.0, freshness=8.0, size=5.0
+            ),
             percentage=75.0,
             grade="B",
-            priority="MEDIUM"
+            priority="MEDIUM",
         )
         assert score.name == "Test GmbH"
         assert score.grade == "B"
@@ -314,28 +287,49 @@ class TestLeadScore:
     def test_priority_calculation(self):
         """Priority berechnen"""
         # HIGH: >= 70% und contact >= 15
-        breakdown_high = ScoreBreakdown(contact=18.0, location=18.0, branch=18.0,
-                                        completeness=12.0, freshness=10.0, size=10.0)
+        breakdown_high = ScoreBreakdown(
+            contact=18.0, location=18.0, branch=18.0, completeness=12.0, freshness=10.0, size=10.0
+        )
         assert LeadScore.calculate_priority(86.0, breakdown_high) == "HIGH"
 
         # MEDIUM: >= 50% und contact >= 10
-        breakdown_medium = ScoreBreakdown(contact=12.0, location=10.0, branch=10.0,
-                                         completeness=8.0, freshness=5.0, size=5.0)
+        breakdown_medium = ScoreBreakdown(
+            contact=12.0, location=10.0, branch=10.0, completeness=8.0, freshness=5.0, size=5.0
+        )
         assert LeadScore.calculate_priority(50.0, breakdown_medium) == "MEDIUM"
 
         # LOW: Rest
-        breakdown_low = ScoreBreakdown(contact=5.0, location=5.0, branch=5.0,
-                                      completeness=3.0, freshness=2.0, size=0.0)
+        breakdown_low = ScoreBreakdown(
+            contact=5.0, location=5.0, branch=5.0, completeness=3.0, freshness=2.0, size=0.0
+        )
         assert LeadScore.calculate_priority(20.0, breakdown_low) == "LOW"
 
     def test_quality_helpers(self):
         """Quality Helper Methoden"""
-        score_a = LeadScore(name="Test", total_score=85, breakdown=ScoreBreakdown(),
-                           percentage=85, grade="A", priority="HIGH")
-        score_c = LeadScore(name="Test", total_score=55, breakdown=ScoreBreakdown(),
-                           percentage=55, grade="C", priority="MEDIUM")
-        score_f = LeadScore(name="Test", total_score=10, breakdown=ScoreBreakdown(),
-                           percentage=10, grade="F", priority="LOW")
+        score_a = LeadScore(
+            name="Test",
+            total_score=85,
+            breakdown=ScoreBreakdown(),
+            percentage=85,
+            grade="A",
+            priority="HIGH",
+        )
+        score_c = LeadScore(
+            name="Test",
+            total_score=55,
+            breakdown=ScoreBreakdown(),
+            percentage=55,
+            grade="C",
+            priority="MEDIUM",
+        )
+        score_f = LeadScore(
+            name="Test",
+            total_score=10,
+            breakdown=ScoreBreakdown(),
+            percentage=10,
+            grade="F",
+            priority="LOW",
+        )
 
         assert score_a.is_high_quality is True
         assert score_c.is_medium_quality is True
@@ -349,11 +343,7 @@ class TestPLZCoordinate:
     def test_create_coordinate(self):
         """PLZCoordinate erstellen"""
         coord = PLZCoordinate(
-            plz="2351",
-            ort="Guntramsdorf",
-            bundesland="Niederösterreich",
-            lat=48.0475,
-            lon=16.3167
+            plz="2351", ort="Guntramsdorf", bundesland="Niederösterreich", lat=48.0475, lon=16.3167
         )
         assert coord.plz == "2351"
         assert coord.ort == "Guntramsdorf"
@@ -361,13 +351,12 @@ class TestPLZCoordinate:
     def test_distance_calculation(self):
         """Distanz-Berechnung (Haversine)"""
         # Wien (1010)
-        wien = PLZCoordinate(plz="1010", ort="Wien", bundesland="Wien",
-                            lat=48.2082, lon=16.3738)
+        wien = PLZCoordinate(plz="1010", ort="Wien", bundesland="Wien", lat=48.2082, lon=16.3738)
 
         # Guntramsdorf (2351)
-        guntramsdorf = PLZCoordinate(plz="2351", ort="Guntramsdorf",
-                                    bundesland="Niederösterreich",
-                                    lat=48.0475, lon=16.3167)
+        guntramsdorf = PLZCoordinate(
+            plz="2351", ort="Guntramsdorf", bundesland="Niederösterreich", lat=48.0475, lon=16.3167
+        )
 
         # Distanz sollte ca. 18km sein
         distance = wien.distance_to(guntramsdorf)
@@ -420,9 +409,9 @@ class TestPLZHelpers:
         assert is_valid_plz("2351") is True
         assert is_valid_plz("1010") is True
         assert is_valid_plz("0000") is False  # Keine gültige PLZ
-        assert is_valid_plz("123") is False   # Zu kurz
+        assert is_valid_plz("123") is False  # Zu kurz
         assert is_valid_plz("12345") is False  # Zu lang
-        assert is_valid_plz("ABCD") is False   # Keine Zahlen
+        assert is_valid_plz("ABCD") is False  # Keine Zahlen
 
 
 if __name__ == "__main__":

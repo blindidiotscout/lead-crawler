@@ -3,13 +3,14 @@ Scoring Domain Models
 Definiert Lead-Scoring-Ergebnisse und Bewertungsmetriken
 """
 
-from dataclasses import dataclass, field, asdict
-from typing import Optional, Dict, List, Any
+from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 
 class ScoreGrade(Enum):
     """Noten für Lead-Qualität"""
+
     A = "A"  # Excellent (80-100%)
     B = "B"  # Good (60-79%)
     C = "C"  # Fair (40-59%)
@@ -19,6 +20,7 @@ class ScoreGrade(Enum):
 
 class Priority(Enum):
     """Priorität für Lead-Followup"""
+
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
     LOW = "LOW"
@@ -31,6 +33,7 @@ class ScoreBreakdown:
 
     Jede Kategorie hat einen Score zwischen 0 und ihrem Max-Wert.
     """
+
     # Kontakt-Score (0-25)
     # Bewertet: Email, Telefon, Website vorhanden
     contact: float = 0.0
@@ -55,7 +58,7 @@ class ScoreBreakdown:
     # Bewertet: Unternehmensgröße (Schätzung)
     size: float = 0.0
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         """Konvertiert zu Dictionary"""
         return {
             "contact": self.contact,
@@ -63,11 +66,11 @@ class ScoreBreakdown:
             "branch": self.branch,
             "completeness": self.completeness,
             "freshness": self.freshness,
-            "size": self.size
+            "size": self.size,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, float]) -> "ScoreBreakdown":
+    def from_dict(cls, data: dict[str, float]) -> "ScoreBreakdown":
         """Erstellt ScoreBreakdown aus Dictionary"""
         return cls(
             contact=data.get("contact", 0.0),
@@ -75,20 +78,15 @@ class ScoreBreakdown:
             branch=data.get("branch", 0.0),
             completeness=data.get("completeness", 0.0),
             freshness=data.get("freshness", 0.0),
-            size=data.get("size", 0.0)
+            size=data.get("size", 0.0),
         )
 
     @property
     def total(self) -> float:
         """Gesamtscore (Summe aller Kategorien)"""
-        return sum([
-            self.contact,
-            self.location,
-            self.branch,
-            self.completeness,
-            self.freshness,
-            self.size
-        ])
+        return sum(
+            [self.contact, self.location, self.branch, self.completeness, self.freshness, self.size]
+        )
 
     @property
     def max_score(self) -> float:
@@ -113,12 +111,12 @@ class ScoreBreakdown:
 
 # Standard-Gewichtung für Scoring
 DEFAULT_WEIGHTS = {
-    "contact": 25,      # Kontakt-Infos (Email, Telefon, Website)
-    "location": 20,     # Standort (Distanz)
-    "branch": 20,       # Branchen-Relevanz
-    "completeness": 15, # Datenvollständigkeit
-    "freshness": 10,    # Aktualität
-    "size": 10,         # Unternehmensgröße
+    "contact": 25,  # Kontakt-Infos (Email, Telefon, Website)
+    "location": 20,  # Standort (Distanz)
+    "branch": 20,  # Branchen-Relevanz
+    "completeness": 15,  # Datenvollständigkeit
+    "freshness": 10,  # Aktualität
+    "size": 10,  # Unternehmensgröße
 }
 
 
@@ -129,6 +127,7 @@ class LeadScore:
 
     Enthält den Gesamtscore, die Aufschlüsselung und Empfehlungen
     """
+
     # Unternehmensname (für Reference)
     name: str
 
@@ -145,13 +144,13 @@ class LeadScore:
     priority: str = "LOW"  # HIGH, MEDIUM, LOW
 
     # Begründungen
-    reasons: List[str] = field(default_factory=list)
+    reasons: list[str] = field(default_factory=list)
 
     # Zusätzliche Metadaten
-    target_branches: List[str] = field(default_factory=list)
-    distance_km: Optional[float] = None
+    target_branches: list[str] = field(default_factory=list)
+    distance_km: float | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
         return {
             "name": self.name,
@@ -163,11 +162,11 @@ class LeadScore:
             "priority": self.priority,
             "reasons": self.reasons,
             "target_branches": self.target_branches,
-            "distance_km": self.distance_km
+            "distance_km": self.distance_km,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "LeadScore":
+    def from_dict(cls, data: dict[str, Any]) -> "LeadScore":
         """Erstellt LeadScore aus Dictionary"""
         breakdown = ScoreBreakdown.from_dict(data.get("breakdown", {}))
 
@@ -181,7 +180,7 @@ class LeadScore:
             priority=data.get("priority", "LOW"),
             reasons=data.get("reasons", []),
             target_branches=data.get("target_branches", []),
-            distance_km=data.get("distance_km")
+            distance_km=data.get("distance_km"),
         )
 
     @staticmethod
@@ -254,7 +253,7 @@ class LeadScore:
             breakdown=breakdown,
             percentage=percentage,
             grade=grade,
-            priority=priority
+            priority=priority,
         )
 
     @property

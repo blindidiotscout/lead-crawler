@@ -2,30 +2,31 @@
 Unit Tests für Services
 """
 
-import sys
-import os
-from pathlib import Path
-import pytest
-import tempfile
 import json
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+import pytest
 
 # Add src directory to path for imports
 src_path = Path(__file__).parent.parent.parent / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
+from lead_crawler.config import CacheConfig, PLZConfig
 from lead_crawler.services.cache import SQLiteCache, get_cache, reset_cache
-from lead_crawler.services.llm_client import MockLLMClient, LLMResponse
-from lead_crawler.services.website_extractor import WebsiteContent
+from lead_crawler.services.llm_client import LLMResponse, MockLLMClient
 from lead_crawler.services.plz_service import (
-    PLZDatabase,
     HaversineCalculator,
+    PLZDatabase,
     PLZService,
     get_plz_service,
     reset_plz_service,
     seed_sample_data,
 )
-from lead_crawler.config import CacheConfig, PLZConfig
+from lead_crawler.services.website_extractor import WebsiteContent
 
 
 class TestSQLiteCache:
@@ -92,8 +93,11 @@ class TestSQLiteCache:
         # Nach Ablauf nicht mehr verfügbar (wir können nicht wirklich warten)
         # Wir testen nur, dass das Feld expires_at gesetzt wurde
         import sqlite3
+
         with sqlite3.connect(str(cache.db_path)) as conn:
-            cursor = conn.execute("SELECT expires_at FROM cache_entries WHERE key = ?", ("short_ttl",))
+            cursor = conn.execute(
+                "SELECT expires_at FROM cache_entries WHERE key = ?", ("short_ttl",)
+            )
             row = cursor.fetchone()
             assert row[0] is not None
 
@@ -171,10 +175,7 @@ class TestMockLLMClient:
     def test_analyze_branch(self):
         """analyze_branch() Methode"""
         client = MockLLMClient(branch="Bau", confidence=0.92)
-        website_content = {
-            "title": "Test Firma",
-            "main_text": "Wir sind eine Baufirma"
-        }
+        website_content = {"title": "Test Firma", "main_text": "Wir sind eine Baufirma"}
 
         analysis = client.analyze_branch("Test GmbH", website_content)
 
@@ -200,7 +201,7 @@ class TestWebsiteContent:
             meta_description="We do things",
             main_text="This is our company...",
             word_count=100,
-            crawl_time=1.5
+            crawl_time=1.5,
         )
 
         assert content.url == "https://example.com"
@@ -216,7 +217,7 @@ class TestWebsiteContent:
             main_text="Text",
             about_text="About",
             word_count=50,
-            crawl_time=1.0
+            crawl_time=1.0,
         )
 
         data = content.to_dict()
@@ -230,7 +231,7 @@ class TestWebsiteContent:
             "title": "Example",
             "meta_description": "Desc",
             "main_text": "Text",
-            "word_count": 50
+            "word_count": 50,
         }
 
         content = WebsiteContent.from_dict(data)
@@ -239,9 +240,24 @@ class TestWebsiteContent:
 
     def test_is_valid(self):
         """is_valid Property"""
-        valid = WebsiteContent(url="https://example.com", title="Test", meta_description="Desc", main_text="Text", word_count=100)
-        invalid_error = WebsiteContent(url="https://example.com", title="", meta_description="", main_text="", word_count=0, error="Failed")
-        invalid_empty = WebsiteContent(url="https://example.com", title="Test", meta_description="", main_text="", word_count=0)
+        valid = WebsiteContent(
+            url="https://example.com",
+            title="Test",
+            meta_description="Desc",
+            main_text="Text",
+            word_count=100,
+        )
+        invalid_error = WebsiteContent(
+            url="https://example.com",
+            title="",
+            meta_description="",
+            main_text="",
+            word_count=0,
+            error="Failed",
+        )
+        invalid_empty = WebsiteContent(
+            url="https://example.com", title="Test", meta_description="", main_text="", word_count=0
+        )
 
         assert valid.is_valid is True
         assert invalid_error.is_valid is False
@@ -257,7 +273,7 @@ class TestWebsiteContent:
             about_text="About us",
             services_text="Our services",
             contact_text="Contact info",
-            word_count=100
+            word_count=100,
         )
 
         combined = content.combined_text
@@ -410,10 +426,7 @@ class TestPLZService:
 
     def test_max_radius_limit(self, tmp_path):
         """Max-Radius-Limit"""
-        service = PLZService(PLZConfig(
-            db_path=tmp_path / "test_plz.db",
-            max_radius_km=50.0
-        ))
+        service = PLZService(PLZConfig(db_path=tmp_path / "test_plz.db", max_radius_km=50.0))
         seed_sample_data(service.db)
 
         with pytest.raises(ValueError) as exc_info:

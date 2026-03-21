@@ -3,80 +3,83 @@ Spider Runner Module
 Einheitliche Factory und Runner für alle Spider/Crawler
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Optional, Dict, List, Any, Callable
-from pathlib import Path
 import json
 import logging
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
-from lead_crawler.config import get_settings, Settings
-from lead_crawler.crawlers.base import CrawlerResult, CrawlerStatus, CrawlerFactory
+from lead_crawler.config import Settings, get_settings
+from lead_crawler.crawlers.base import CrawlerFactory, CrawlerResult, CrawlerStatus
 from lead_crawler.models import Company
 
 
 @dataclass
 class RunConfig:
     """Konfiguration für einen Crawler-Run"""
+
     # Crawler-Parameter
     crawler_name: str
-    plz: Optional[str] = None
-    ort: Optional[str] = None
-    bundesland: Optional[str] = None
-    radius_km: Optional[float] = None
+    plz: str | None = None
+    ort: str | None = None
+    bundesland: str | None = None
+    radius_km: float | None = None
 
     # Output-Optionen
     output_format: str = "json"  # json, jsonl, csv
-    output_path: Optional[Path] = None
+    output_path: Path | None = None
     dedup: bool = True
 
     # Limiting
-    max_results: Optional[int] = None
-    max_plz: Optional[int] = None
+    max_results: int | None = None
+    max_plz: int | None = None
 
     # Callbacks
-    on_company: Optional[Callable[[Company], None]] = None
-    on_error: Optional[Callable[[Dict], None]] = None
-    on_progress: Optional[Callable[[int, int], None]] = None
+    on_company: Callable[[Company], None] | None = None
+    on_error: Callable[[dict], None] | None = None
+    on_progress: Callable[[int, int], None] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
         return {
-            'crawler_name': self.crawler_name,
-            'plz': self.plz,
-            'ort': self.ort,
-            'bundesland': self.bundesland,
-            'radius_km': self.radius_km,
-            'output_format': self.output_format,
-            'output_path': str(self.output_path) if self.output_path else None,
-            'dedup': self.dedup,
-            'max_results': self.max_results,
-            'max_plz': self.max_plz
+            "crawler_name": self.crawler_name,
+            "plz": self.plz,
+            "ort": self.ort,
+            "bundesland": self.bundesland,
+            "radius_km": self.radius_km,
+            "output_format": self.output_format,
+            "output_path": str(self.output_path) if self.output_path else None,
+            "dedup": self.dedup,
+            "max_results": self.max_results,
+            "max_plz": self.max_plz,
         }
 
 
 @dataclass
 class RunResult:
     """Ergebnis eines Crawler-Runs mit Output-Informationen"""
+
     crawler_result: CrawlerResult
     config: RunConfig
-    output_file: Optional[Path] = None
+    output_file: Path | None = None
     success: bool = True
     message: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
         return {
-            'success': self.success,
-            'message': self.message,
-            'config': self.config.to_dict(),
-            'output_file': str(self.output_file) if self.output_file else None,
-            'stats': {
-                'total_companies': self.crawler_result.total,
-                'total_errors': len(self.crawler_result.errors),
-                'duration_seconds': self.crawler_result.duration_seconds,
-                'status': self.crawler_result.status.value
-            }
+            "success": self.success,
+            "message": self.message,
+            "config": self.config.to_dict(),
+            "output_file": str(self.output_file) if self.output_file else None,
+            "stats": {
+                "total_companies": self.crawler_result.total,
+                "total_errors": len(self.crawler_result.errors),
+                "duration_seconds": self.crawler_result.duration_seconds,
+                "status": self.crawler_result.status.value,
+            },
         }
 
 
@@ -107,7 +110,7 @@ class SpiderRunner:
         result = runner.run_with_config(config)
     """
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """
         Initialisiert Runner
 
@@ -120,17 +123,17 @@ class SpiderRunner:
     def run(
         self,
         crawler_name: str = "wko",
-        plz: Optional[str] = None,
-        ort: Optional[str] = None,
-        bundesland: Optional[str] = None,
-        radius_km: Optional[float] = None,
+        plz: str | None = None,
+        ort: str | None = None,
+        bundesland: str | None = None,
+        radius_km: float | None = None,
         output_format: str = "json",
-        output_path: Optional[Path] = None,
+        output_path: Path | None = None,
         dedup: bool = True,
-        max_results: Optional[int] = None,
-        on_company: Optional[Callable[[Company], None]] = None,
-        on_error: Optional[Callable[[Dict], None]] = None,
-        **kwargs
+        max_results: int | None = None,
+        on_company: Callable[[Company], None] | None = None,
+        on_error: Callable[[dict], None] | None = None,
+        **kwargs,
     ) -> RunResult:
         """
         Führt Crawler mit Parametern aus
@@ -163,7 +166,7 @@ class SpiderRunner:
             dedup=dedup,
             max_results=max_results,
             on_company=on_company,
-            on_error=on_error
+            on_error=on_error,
         )
 
         return self.run_with_config(config, **kwargs)
@@ -192,15 +195,12 @@ class SpiderRunner:
                     center_plz=config.plz,
                     radius_km=config.radius_km,
                     max_plz=config.max_plz,
-                    dedup=config.dedup
+                    dedup=config.dedup,
                 )
             else:
                 # Normale Suche
                 result = crawler.crawl(
-                    plz=config.plz,
-                    ort=config.ort,
-                    bundesland=config.bundesland,
-                    **kwargs
+                    plz=config.plz, ort=config.ort, bundesland=config.bundesland, **kwargs
                 )
 
             # Callbacks aufrufen
@@ -214,7 +214,7 @@ class SpiderRunner:
 
             # Limitieren falls gewünscht
             if config.max_results and len(result.companies) > config.max_results:
-                result.companies = result.companies[:config.max_results]
+                result.companies = result.companies[: config.max_results]
 
             # Output schreiben
             output_file = None
@@ -226,26 +226,20 @@ class SpiderRunner:
                 config=config,
                 output_file=output_file,
                 success=True,
-                message=f"Found {len(result.companies)} companies"
+                message=f"Found {len(result.companies)} companies",
             )
 
         except Exception as e:
             self.logger.error(f"Crawler failed: {e}")
 
             # Error Result
-            error_result = CrawlerResult(
-                errors=[{'error': str(e)}],
-                status=CrawlerStatus.FAILED
-            )
+            error_result = CrawlerResult(errors=[{"error": str(e)}], status=CrawlerStatus.FAILED)
 
             return RunResult(
-                crawler_result=error_result,
-                config=config,
-                success=False,
-                message=str(e)
+                crawler_result=error_result, config=config, success=False, message=str(e)
             )
 
-    def _write_output(self, companies: List[Company], config: RunConfig) -> Path:
+    def _write_output(self, companies: list[Company], config: RunConfig) -> Path:
         """
         Schreibt Ergebnisse in Ausgabedatei
 
@@ -281,20 +275,20 @@ class SpiderRunner:
         self.logger.info(f"Wrote {len(companies)} companies to {output_path}")
         return output_path
 
-    def _write_json(self, companies: List[Company], path: Path) -> None:
+    def _write_json(self, companies: list[Company], path: Path) -> None:
         """Schreibt JSON-Datei"""
         data = [c.to_dict() for c in companies]
-        with open(path, 'w', encoding='utf-8') as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-    def _write_jsonl(self, companies: List[Company], path: Path) -> None:
+    def _write_jsonl(self, companies: list[Company], path: Path) -> None:
         """Schreibt JSONL-Datei (ein JSON pro Zeile)"""
-        with open(path, 'w', encoding='utf-8') as f:
+        with open(path, "w", encoding="utf-8") as f:
             for company in companies:
                 f.write(json.dumps(company.to_dict(), ensure_ascii=False))
-                f.write('\n')
+                f.write("\n")
 
-    def _write_csv(self, companies: List[Company], path: Path) -> None:
+    def _write_csv(self, companies: list[Company], path: Path) -> None:
         """Schreibt CSV-Datei"""
         import csv
 
@@ -305,7 +299,7 @@ class SpiderRunner:
         first = companies[0].to_dict()
         fieldnames = list(first.keys())
 
-        with open(path, 'w', encoding='utf-8', newline='') as f:
+        with open(path, "w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
 
@@ -314,7 +308,7 @@ class SpiderRunner:
 
 
 # Convenience-Funktionen
-def run_wko(plz: Optional[str] = None, **kwargs) -> RunResult:
+def run_wko(plz: str | None = None, **kwargs) -> RunResult:
     """
     Führt WKO Crawler aus
 
@@ -342,18 +336,7 @@ def run_wko_radius(center_plz: str, radius_km: float = 20.0, **kwargs) -> RunRes
         RunResult
     """
     runner = SpiderRunner()
-    return runner.run(
-        crawler_name="wko",
-        plz=center_plz,
-        radius_km=radius_km,
-        **kwargs
-    )
+    return runner.run(crawler_name="wko", plz=center_plz, radius_km=radius_km, **kwargs)
 
 
-__all__ = [
-    'SpiderRunner',
-    'RunConfig',
-    'RunResult',
-    'run_wko',
-    'run_wko_radius'
-]
+__all__ = ["SpiderRunner", "RunConfig", "RunResult", "run_wko", "run_wko_radius"]

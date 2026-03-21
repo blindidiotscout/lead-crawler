@@ -4,31 +4,27 @@ Batch-Analyse und Job-Management
 """
 
 import uuid
-import asyncio
-from typing import Dict, Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
-from fastapi.responses import JSONResponse
 
-from lead_crawler.pipelines import LeadAnalysisPipeline, BatchResult
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+
+from api.dependencies import (
+    APIUser,
+    get_analysis_pipeline,
+    verify_api_key,
+)
 from api.schemas import (
     AnalyzeBatchRequest,
     AnalyzeJobResponse,
-    AnalyzeResponse,
     JobStatusEnum,
 )
-from api.dependencies import (
-    get_analysis_pipeline,
-    APIUser,
-    verify_api_key,
-)
-
+from lead_crawler.pipelines import LeadAnalysisPipeline
 
 router = APIRouter(prefix="/analyze", tags=["analyze"])
 
 
 # Simulierte Job-Datenbank (in Produktion: Redis oder echte DB)
-_jobs_db: Dict[str, dict] = {}
+_jobs_db: dict[str, dict] = {}
 
 
 @router.post("/batch", response_model=AnalyzeJobResponse, summary="Batch-Analyse starten")
@@ -36,7 +32,7 @@ async def start_batch_analyze(
     request: AnalyzeBatchRequest,
     background_tasks: BackgroundTasks,
     user: APIUser = Depends(verify_api_key),
-    pipeline: LeadAnalysisPipeline = Depends(get_analysis_pipeline)
+    pipeline: LeadAnalysisPipeline = Depends(get_analysis_pipeline),
 ) -> AnalyzeJobResponse:
     """
     Startet eine Batch-Analyse für mehrere Unternehmen.
@@ -66,29 +62,24 @@ async def start_batch_analyze(
         job_id=job_id,
         company_ids=request.company_ids,
         skip_cache=request.skip_cache,
-        include_scoring=request.include_scoring
+        include_scoring=request.include_scoring,
     )
 
     return AnalyzeJobResponse(
-        job_id=job_id,
-        status=JobStatusEnum.PENDING,
-        progress=0,
-        total=len(request.company_ids)
+        job_id=job_id, status=JobStatusEnum.PENDING, progress=0, total=len(request.company_ids)
     )
 
 
 @router.get("/{job_id}", response_model=AnalyzeJobResponse, summary="Job-Status abrufen")
 async def get_job_status(
-    job_id: str,
-    user: APIUser = Depends(verify_api_key)
+    job_id: str, user: APIUser = Depends(verify_api_key)
 ) -> AnalyzeJobResponse:
     """
     Gibt den Status eines Analyse-Jobs zurück.
     """
     if job_id not in _jobs_db:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Job {job_id} nicht gefunden"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Job {job_id} nicht gefunden"
         )
 
     job = _jobs_db[job_id]
@@ -98,30 +89,25 @@ async def get_job_status(
         status=job["status"],
         progress=job["progress"],
         total=job["total"],
-        result=job.get("result")
+        result=job.get("result"),
     )
 
 
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Job abbrechen")
-async def cancel_job(
-    job_id: str,
-    user: APIUser = Depends(verify_api_key)
-):
+async def cancel_job(job_id: str, user: APIUser = Depends(verify_api_key)):
     """
     Bricht einen laufenden Job ab.
     """
     if job_id not in _jobs_db:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Job {job_id} nicht gefunden"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Job {job_id} nicht gefunden"
         )
 
     job = _jobs_db[job_id]
 
     if job["status"] == JobStatusEnum.COMPLETED:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Job bereits abgeschlossen"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Job bereits abgeschlossen"
         )
 
     job["status"] = JobStatusEnum.FAILED
@@ -132,13 +118,9 @@ async def cancel_job(
 
 
 async def _run_batch_analyze(
-    job_id: str,
-    company_ids: list,
-    skip_cache: bool,
-    include_scoring: bool
+    job_id: str, company_ids: list, skip_cache: bool, include_scoring: bool
 ):
     """Background Task für Batch-Analyse"""
-    from lead_crawler.pipelines import get_llm_client, get_cache
 
     # Job-Status aktualisieren
     job = _jobs_db[job_id]
@@ -159,9 +141,7 @@ async def _run_batch_analyze(
 
         # Batch-Analyse durchführen
         result = pipeline.analyze_batch(
-            companies,
-            skip_cache=skip_cache,
-            progress_callback=progress_callback
+            companies, skip_cache=skip_cache, progress_callback=progress_callback
         )
 
         # Job abschließen

@@ -5,6 +5,7 @@ Unit Tests für Configuration
 import os
 import sys
 from pathlib import Path
+
 import pytest
 
 # Add src directory to path for imports
@@ -13,13 +14,13 @@ if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
 from lead_crawler.config import (
-    Settings,
-    OllamaConfig,
-    CacheConfig,
-    PLZConfig,
-    CrawlerConfig,
-    ScoringConfig,
     APIConfig,
+    CacheConfig,
+    CrawlerConfig,
+    OllamaConfig,
+    PLZConfig,
+    ScoringConfig,
+    Settings,
     get_settings,
     reset_settings,
 )
@@ -87,11 +88,7 @@ class TestCrawlerConfig:
 
     def test_custom_settings(self):
         """CrawlerConfig mit custom settings"""
-        config = CrawlerConfig(
-            rate_limit=1.0,
-            concurrent_requests=2,
-            timeout=60
-        )
+        config = CrawlerConfig(rate_limit=1.0, concurrent_requests=2, timeout=60)
         assert config.rate_limit == 1.0
         assert config.concurrent_requests == 2
         assert config.timeout == 60
@@ -158,10 +155,7 @@ class TestSettings:
 
     def test_ensure_directories(self, tmp_path):
         """ensure_directories erstellt Verzeichnisse"""
-        settings = Settings(
-            data_dir=tmp_path / "data",
-            output_dir=tmp_path / "output"
-        )
+        settings = Settings(data_dir=tmp_path / "data", output_dir=tmp_path / "output")
         settings.ensure_directories()
 
         assert settings.data_dir.exists()
@@ -186,8 +180,7 @@ class TestSettings:
     def test_to_and_from_file(self, tmp_path):
         """Settings speichern und laden"""
         settings = Settings(
-            ollama=OllamaConfig(url="http://test:11434", model="test-model"),
-            default_plz="4020"
+            ollama=OllamaConfig(url="http://test:11434", model="test-model"), default_plz="4020"
         )
 
         # Speichern

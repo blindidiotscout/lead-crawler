@@ -2,43 +2,44 @@
 Unit Tests für Pipeline Module
 """
 
-import sys
-from pathlib import Path
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-import tempfile
 import json
+import sys
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Add src directory to path for imports
 src_path = Path(__file__).parent.parent.parent / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-from lead_crawler.pipelines.lead_analysis import (
-    LeadAnalysisPipeline,
-    PipelineResult,
-    PipelineStage,
-    BatchResult,
-    run_analysis,
+from lead_crawler.models import (
+    Address,
+    BranchAnalysis,
+    Company,
+    CompanyMetadata,
+    CompanySource,
+    ContactInfo,
+    LeadScore,
+    LLMAnalysisResult,
+    ScoreBreakdown,
 )
 from lead_crawler.pipelines.export import (
-    ExportPipeline,
     ExportConfig,
+    ExportPipeline,
     ExportResult,
     export_companies,
 )
-from lead_crawler.services.llm_client import MockLLMClient
-from lead_crawler.models import (
-    Company,
-    Address,
-    ContactInfo,
-    CompanyMetadata,
-    CompanySource,
-    LeadScore,
-    ScoreBreakdown,
-    LLMAnalysisResult,
-    BranchAnalysis,
+from lead_crawler.pipelines.lead_analysis import (
+    BatchResult,
+    LeadAnalysisPipeline,
+    PipelineResult,
+    PipelineStage,
+    run_analysis,
 )
+from lead_crawler.services.llm_client import MockLLMClient
 
 
 class TestPipelineResult:
@@ -59,13 +60,13 @@ class TestPipelineResult:
         company = Company(name="Test GmbH")
         score = LeadScore.create(
             name="Test GmbH",
-            breakdown=ScoreBreakdown(contact=20, location=15, branch=15, completeness=10, freshness=5, size=5)
+            breakdown=ScoreBreakdown(
+                contact=20, location=15, branch=15, completeness=10, freshness=5, size=5
+            ),
         )
 
         result = PipelineResult(
-            company=company,
-            score=score,
-            stages_completed=[PipelineStage.SCORE]
+            company=company, score=score, stages_completed=[PipelineStage.SCORE]
         )
 
         assert result.is_successful is True
@@ -75,8 +76,7 @@ class TestPipelineResult:
         """PipelineResult mit Fehler"""
         company = Company(name="Test GmbH")
         result = PipelineResult(
-            company=company,
-            errors=[{'stage': 'analyze', 'error': 'LLM failed'}]
+            company=company, errors=[{"stage": "analyze", "error": "LLM failed"}]
         )
 
         assert result.is_successful is False
@@ -84,14 +84,11 @@ class TestPipelineResult:
     def test_result_to_dict(self):
         """PipelineResult zu Dictionary"""
         company = Company(name="Test GmbH")
-        result = PipelineResult(
-            company=company,
-            total_time=1.5
-        )
+        result = PipelineResult(company=company, total_time=1.5)
 
         data = result.to_dict()
-        assert 'company' in data
-        assert data['total_time'] == 1.5
+        assert "company" in data
+        assert data["total_time"] == 1.5
 
 
 class TestBatchResult:
@@ -112,9 +109,7 @@ class TestBatchResult:
         company = Company(name="Test GmbH")
         score = LeadScore.create(name="Test GmbH", breakdown=ScoreBreakdown(contact=25))
         result1 = PipelineResult(
-            company=company,
-            score=score,
-            stages_completed=[PipelineStage.SCORE]
+            company=company, score=score, stages_completed=[PipelineStage.SCORE]
         )
         batch.add_result(result1)
 
@@ -124,8 +119,7 @@ class TestBatchResult:
 
         # Fehlerhaftes Ergebnis
         result2 = PipelineResult(
-            company=Company(name="Fehler AG"),
-            errors=[{'stage': 'analyze', 'error': 'Failed'}]
+            company=Company(name="Fehler AG"), errors=[{"stage": "analyze", "error": "Failed"}]
         )
         batch.add_result(result2)
 
@@ -167,7 +161,7 @@ class TestLeadAnalysisPipeline:
         company = Company(
             name="Test GmbH",
             address=Address(plz="2351", ort="Guntramsdorf"),
-            contact=ContactInfo(email="test@example.com")
+            contact=ContactInfo(email="test@example.com"),
         )
 
         result = pipeline.analyze(company, skip_analysis=True)
@@ -180,25 +174,23 @@ class TestLeadAnalysisPipeline:
         pipeline = LeadAnalysisPipeline()
         pipeline.llm_client = MockLLMClient()  # Mock für Tests
 
-        company = Company(
-            name="Test GmbH",
-            contact=ContactInfo(website="https://example.com")
-        )
+        company = Company(name="Test GmbH", contact=ContactInfo(website="https://example.com"))
 
         # Website-Extractor mocken
-        with patch.object(pipeline.website_extractor, 'extract') as mock_extract:
+        with patch.object(pipeline.website_extractor, "extract") as mock_extract:
             from lead_crawler.services.website_extractor import WebsiteContent
+
             mock_extract.return_value = WebsiteContent(
                 url="https://example.com",
                 title="Test GmbH",
                 meta_description="Test",
                 main_text="We are a software company...",
-                word_count=100
+                word_count=100,
             )
 
             # Cache mocken
-            with patch.object(pipeline.cache, 'get', return_value=None):
-                with patch.object(pipeline.cache, 'set'):
+            with patch.object(pipeline.cache, "get", return_value=None):
+                with patch.object(pipeline.cache, "set"):
                     result = pipeline.analyze(company, skip_cache=True)
 
         assert result.company.name == "Test GmbH"
@@ -209,56 +201,50 @@ class TestLeadAnalysisPipeline:
         """Analyse aus Cache laden"""
         pipeline = LeadAnalysisPipeline()
 
-        company = Company(
-            name="Test GmbH",
-            contact=ContactInfo(website="https://example.com")
-        )
+        company = Company(name="Test GmbH", contact=ContactInfo(website="https://example.com"))
 
         # Cache-Mock
         cached_data = {
-            'branch': 'IT',
-            'confidence': 0.9,
-            'services': ['Software'],
-            'target_market': 'B2B',
-            '_cached_at': '2026-03-21T00:00:00'
+            "branch": "IT",
+            "confidence": 0.9,
+            "services": ["Software"],
+            "target_market": "B2B",
+            "_cached_at": "2026-03-21T00:00:00",
         }
 
-        with patch.object(pipeline.cache, 'get', return_value=cached_data):
+        with patch.object(pipeline.cache, "get", return_value=cached_data):
             result = pipeline.analyze(company)
 
         assert result.from_cache is True
         assert result.analysis is not None
-        assert result.analysis.analysis.branch == 'IT'
+        assert result.analysis.analysis.branch == "IT"
 
     def test_get_stats(self):
         """Pipeline-Statistiken"""
         pipeline = LeadAnalysisPipeline()
 
         company = Company(name="Test GmbH")
-        result = PipelineResult(
-            company=company,
-            stages_completed=[PipelineStage.SCORE]
-        )
+        result = PipelineResult(company=company, stages_completed=[PipelineStage.SCORE])
         result.is_successful  # Trigger property
 
-        pipeline._stats['companies_processed'] = 5
-        pipeline._stats['analyses_completed'] = 3
-        pipeline._stats['cache_hits'] = 2
+        pipeline._stats["companies_processed"] = 5
+        pipeline._stats["analyses_completed"] = 3
+        pipeline._stats["cache_hits"] = 2
 
         stats = pipeline.get_stats()
-        assert stats['companies_processed'] == 5
-        assert stats['analyses_completed'] == 3
-        assert stats['cache_hits'] == 2
+        assert stats["companies_processed"] == 5
+        assert stats["analyses_completed"] == 3
+        assert stats["cache_hits"] == 2
 
     def test_reset_stats(self):
         """Statistiken zurücksetzen"""
         pipeline = LeadAnalysisPipeline()
-        pipeline._stats['companies_processed'] = 10
+        pipeline._stats["companies_processed"] = 10
 
         pipeline.reset_stats()
         stats = pipeline.get_stats()
 
-        assert stats['companies_processed'] == 0
+        assert stats["companies_processed"] == 0
 
 
 class TestExportPipeline:
@@ -275,19 +261,16 @@ class TestExportPipeline:
             Company(
                 name="Test GmbH",
                 address=Address(plz="2351", ort="Guntramsdorf"),
-                contact=ContactInfo(email="test@example.com")
+                contact=ContactInfo(email="test@example.com"),
             ),
             Company(
                 name="Test AG",
                 address=Address(plz="1010", ort="Wien"),
-                contact=ContactInfo(telefon="+43 1 234")
-            )
+                contact=ContactInfo(telefon="+43 1 234"),
+            ),
         ]
 
-        config = ExportConfig(
-            output_path=tmp_path / "test.csv",
-            output_format="csv"
-        )
+        config = ExportConfig(output_path=tmp_path / "test.csv", output_format="csv")
 
         pipeline = ExportPipeline()
         result = pipeline.export(companies, config)
@@ -303,10 +286,7 @@ class TestExportPipeline:
             Company(name="Test GmbH"),
         ]
 
-        config = ExportConfig(
-            output_path=tmp_path / "test.json",
-            output_format="json"
-        )
+        config = ExportConfig(output_path=tmp_path / "test.json", output_format="json")
 
         pipeline = ExportPipeline()
         result = pipeline.export(companies, config)
@@ -318,7 +298,7 @@ class TestExportPipeline:
         with open(result.output_path) as f:
             data = json.load(f)
         assert len(data) == 1
-        assert data[0]['name'] == 'Test GmbH'
+        assert data[0]["name"] == "Test GmbH"
 
     def test_export_jsonl(self, tmp_path):
         """JSONL-Export"""
@@ -327,10 +307,7 @@ class TestExportPipeline:
             Company(name="Test AG"),
         ]
 
-        config = ExportConfig(
-            output_path=tmp_path / "test.jsonl",
-            output_format="jsonl"
-        )
+        config = ExportConfig(output_path=tmp_path / "test.jsonl", output_format="jsonl")
 
         pipeline = ExportPipeline()
         result = pipeline.export(companies, config)
@@ -349,8 +326,10 @@ class TestExportPipeline:
             name="High Score GmbH",
             score=LeadScore.create(
                 name="High Score GmbH",
-                breakdown=ScoreBreakdown(contact=25, location=20, branch=20, completeness=15, freshness=10, size=10)
-            )
+                breakdown=ScoreBreakdown(
+                    contact=25, location=20, branch=20, completeness=15, freshness=10, size=10
+                ),
+            ),
         )
 
         # Company mit niedrigem Score
@@ -358,16 +337,16 @@ class TestExportPipeline:
             name="Low Score AG",
             score=LeadScore.create(
                 name="Low Score AG",
-                breakdown=ScoreBreakdown(contact=5, location=5, branch=5, completeness=5, freshness=5, size=5)
-            )
+                breakdown=ScoreBreakdown(
+                    contact=5, location=5, branch=5, completeness=5, freshness=5, size=5
+                ),
+            ),
         )
 
         companies = [company_high, company_low]
 
         config = ExportConfig(
-            output_path=tmp_path / "test.csv",
-            output_format="csv",
-            min_score=50  # Nur Scores >= 50
+            output_path=tmp_path / "test.csv", output_format="csv", min_score=50  # Nur Scores >= 50
         )
 
         pipeline = ExportPipeline()
@@ -382,8 +361,10 @@ class TestExportPipeline:
             name="High Priority GmbH",
             score=LeadScore.create(
                 name="High Priority GmbH",
-                breakdown=ScoreBreakdown(contact=20, location=18, branch=18, completeness=12, freshness=8, size=8)
-            )
+                breakdown=ScoreBreakdown(
+                    contact=20, location=18, branch=18, completeness=12, freshness=8, size=8
+                ),
+            ),
         )
         company_high.score.priority = "HIGH"
 
@@ -392,17 +373,17 @@ class TestExportPipeline:
             name="Low Priority AG",
             score=LeadScore.create(
                 name="Low Priority AG",
-                breakdown=ScoreBreakdown(contact=5, location=5, branch=5, completeness=5, freshness=5, size=5)
-            )
+                breakdown=ScoreBreakdown(
+                    contact=5, location=5, branch=5, completeness=5, freshness=5, size=5
+                ),
+            ),
         )
         company_low.score.priority = "LOW"
 
         companies = [company_high, company_low]
 
         config = ExportConfig(
-            output_path=tmp_path / "test.csv",
-            output_format="csv",
-            min_priority="HIGH"
+            output_path=tmp_path / "test.csv", output_format="csv", min_priority="HIGH"
         )
 
         pipeline = ExportPipeline()
@@ -421,7 +402,7 @@ class TestConvenienceFunctions:
         ]
 
         # Mit Mock-Pipeline
-        with patch('lead_crawler.pipelines.lead_analysis.LeadAnalysisPipeline') as MockPipeline:
+        with patch("lead_crawler.pipelines.lead_analysis.LeadAnalysisPipeline") as MockPipeline:
             mock_instance = MagicMock()
             mock_instance.analyze_batch.return_value = BatchResult()
             MockPipeline.return_value = mock_instance
@@ -436,11 +417,7 @@ class TestConvenienceFunctions:
             Company(name="Test GmbH"),
         ]
 
-        result = export_companies(
-            companies,
-            format="json",
-            path=tmp_path / "test.json"
-        )
+        result = export_companies(companies, format="json", path=tmp_path / "test.json")
 
         assert result.is_successful
 
@@ -455,20 +432,22 @@ class TestScoreBreakdownExport:
             score=LeadScore.create(
                 name="Test GmbH",
                 breakdown=ScoreBreakdown(
-                    contact=20,
-                    location=15,
-                    branch=18,
-                    completeness=12,
-                    freshness=8,
-                    size=7
-                )
-            )
+                    contact=20, location=15, branch=18, completeness=12, freshness=8, size=7
+                ),
+            ),
         )
 
         config = ExportConfig(
             output_path=tmp_path / "test.csv",
             output_format="csv",
-            fields=['name', 'score_total', 'score_grade', 'priority', 'score_contact', 'score_location']
+            fields=[
+                "name",
+                "score_total",
+                "score_grade",
+                "priority",
+                "score_contact",
+                "score_location",
+            ],
         )
 
         pipeline = ExportPipeline()
@@ -479,8 +458,8 @@ class TestScoreBreakdownExport:
         # CSV lesen und prüfen
         with open(result.output_path) as f:
             content = f.read()
-            assert 'Test GmbH' in content
-            assert 'score_total' in content.lower() or 'Total' in content
+            assert "Test GmbH" in content
+            assert "score_total" in content.lower() or "Total" in content
 
 
 if __name__ == "__main__":

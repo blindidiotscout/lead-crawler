@@ -8,7 +8,7 @@ Example:
     # Old (deprecated):
     from src.scraper import run_spider
     from src.scoring import LeadScorer
-    
+
     # New (recommended):
     from lead_crawler.crawlers import WKOCrawler
     from lead_crawler.models import LeadScore
@@ -28,14 +28,15 @@ __all__ = [
 ]
 
 # Recommended imports:
-from lead_crawler.crawlers import WKOCrawler
-from lead_crawler.pipelines import LeadAnalysisPipeline, ExportPipeline
-from lead_crawler.models import Company, LeadScore
-
 # Deprecation warning
 import warnings
+
+from lead_crawler.crawlers import WKOCrawler
+from lead_crawler.models import Company, LeadScore
+from lead_crawler.pipelines import ExportPipeline, LeadAnalysisPipeline
+
 warnings.warn(
     "Importing from 'src' is deprecated. Use 'from lead_crawler import ...' instead.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )

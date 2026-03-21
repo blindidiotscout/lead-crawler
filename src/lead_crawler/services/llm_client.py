@@ -6,33 +6,34 @@ Abstraktion für LLM-Aufrufe (Ollama, Mock, etc.)
 import json
 import time
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, List, Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Any
 
-from lead_crawler.config import get_settings, OllamaConfig
+from lead_crawler.config import OllamaConfig, get_settings
 from lead_crawler.models.analysis import BranchAnalysis
 
 
 @dataclass
 class LLMResponse:
     """LLM-Antwort"""
+
     content: str
     model: str
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_duration_ms: float = 0.0
     cached: bool = False
-    error: Optional[str] = None
+    error: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
-            'content': self.content,
-            'model': self.model,
-            'prompt_tokens': self.prompt_tokens,
-            'completion_tokens': self.completion_tokens,
-            'total_duration_ms': self.total_duration_ms,
-            'cached': self.cached,
-            'error': self.error
+            "content": self.content,
+            "model": self.model,
+            "prompt_tokens": self.prompt_tokens,
+            "completion_tokens": self.completion_tokens,
+            "total_duration_ms": self.total_duration_ms,
+            "cached": self.cached,
+            "error": self.error,
         }
 
 
@@ -49,8 +50,9 @@ class LLMClient(ABC):
         pass
 
     @abstractmethod
-    def analyze_branch(self, company_name: str, website_content: Dict[str, Any],
-                       **kwargs) -> Optional[BranchAnalysis]:
+    def analyze_branch(
+        self, company_name: str, website_content: dict[str, Any], **kwargs
+    ) -> BranchAnalysis | None:
         """Analysiert Unternehmen und gibt Branchen-Ergebnis zurück"""
         pass
 
@@ -67,7 +69,7 @@ class OllamaClient(LLMClient):
     Unterstützt lokale Ollama-Instanzen für LLM-Inferenz.
     """
 
-    def __init__(self, config: Optional[OllamaConfig] = None):
+    def __init__(self, config: OllamaConfig | None = None):
         """
         Initialisiert Ollama Client
 
@@ -90,10 +92,11 @@ class OllamaClient(LLMClient):
         """Lazy-init für requests Session"""
         if self._session is None:
             import requests
+
             self._session = requests.Session()
         return self._session
 
-    def _make_request(self, endpoint: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _make_request(self, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
         """
         Führt HTTP-Request gegen Ollama API aus
 
@@ -116,11 +119,7 @@ class OllamaClient(LLMClient):
 
         for attempt in range(self.max_retries):
             try:
-                response = session.post(
-                    url,
-                    json=payload,
-                    timeout=self.timeout
-                )
+                response = session.post(url, json=payload, timeout=self.timeout)
                 response.raise_for_status()
                 return response.json()
 
@@ -142,8 +141,9 @@ class OllamaClient(LLMClient):
 
         raise Exception(f"Ollama request failed after {self.max_retries} retries: {last_error}")
 
-    def generate(self, prompt: str, system_prompt: Optional[str] = None,
-                 temperature: float = 0.7, **kwargs) -> LLMResponse:
+    def generate(
+        self, prompt: str, system_prompt: str | None = None, temperature: float = 0.7, **kwargs
+    ) -> LLMResponse:
         """
         Generiert Text aus Prompt via Ollama
 
@@ -164,8 +164,8 @@ class OllamaClient(LLMClient):
             "stream": False,
             "options": {
                 "temperature": temperature,
-                "num_predict": kwargs.get('max_tokens', 2048),
-            }
+                "num_predict": kwargs.get("max_tokens", 2048),
+            },
         }
 
         if system_prompt:
@@ -177,22 +177,19 @@ class OllamaClient(LLMClient):
             duration_ms = (time.time() - start_time) * 1000
 
             return LLMResponse(
-                content=response.get('response', ''),
+                content=response.get("response", ""),
                 model=self.model,
-                prompt_tokens=response.get('prompt_eval_count', 0),
-                completion_tokens=response.get('eval_count', 0),
-                total_duration_ms=duration_ms
+                prompt_tokens=response.get("prompt_eval_count", 0),
+                completion_tokens=response.get("eval_count", 0),
+                total_duration_ms=duration_ms,
             )
 
         except Exception as e:
-            return LLMResponse(
-                content='',
-                model=self.model,
-                error=str(e)
-            )
+            return LLMResponse(content="", model=self.model, error=str(e))
 
-    def analyze_branch(self, company_name: str, website_content: Dict[str, Any],
-                       **kwargs) -> Optional[BranchAnalysis]:
+    def analyze_branch(
+        self, company_name: str, website_content: dict[str, Any], **kwargs
+    ) -> BranchAnalysis | None:
         """
         Analysiert Unternehmen und extrahiert Branchen-Informationen
 
@@ -228,13 +225,13 @@ Antworte NUR im JSON-Format ohne Markdown:
 
         # Website-Content zusammenfassen
         content_parts = []
-        if website_content.get('title'):
+        if website_content.get("title"):
             content_parts.append(f"Website-Titel: {website_content['title']}")
-        if website_content.get('meta_description'):
+        if website_content.get("meta_description"):
             content_parts.append(f"Meta: {website_content['meta_description']}")
-        if website_content.get('main_text'):
+        if website_content.get("main_text"):
             content_parts.append(f"Haupttext: {website_content['main_text'][:2000]}")
-        if website_content.get('about_text'):
+        if website_content.get("about_text"):
             content_parts.append(f"About: {website_content['about_text'][:500]}")
 
         prompt = f"""Analysiere das folgende Unternehmen:
@@ -256,25 +253,25 @@ Extrahiere Branchen-Informationen im JSON-Format."""
         try:
             # Entferne eventuelle Markdown-Formatierung
             content = response.content.strip()
-            if content.startswith('```json'):
+            if content.startswith("```json"):
                 content = content[7:]
-            if content.startswith('```'):
+            if content.startswith("```"):
                 content = content[3:]
-            if content.endswith('```'):
+            if content.endswith("```"):
                 content = content[:-3]
 
             data = json.loads(content)
 
             return BranchAnalysis(
-                branch=data.get('branch', 'Unknown'),
-                sub_branches=data.get('sub_branches', []),
-                services=data.get('services', []),
-                target_market=data.get('target_market', 'Unknown'),
-                company_size_hint=data.get('company_size_hint', 'Unknown'),
-                keywords=data.get('keywords', []),
-                confidence=float(data.get('confidence', 0.0)),
-                reasoning=data.get('reasoning', ''),
-                model=self.model
+                branch=data.get("branch", "Unknown"),
+                sub_branches=data.get("sub_branches", []),
+                services=data.get("services", []),
+                target_market=data.get("target_market", "Unknown"),
+                company_size_hint=data.get("company_size_hint", "Unknown"),
+                keywords=data.get("keywords", []),
+                confidence=float(data.get("confidence", 0.0)),
+                reasoning=data.get("reasoning", ""),
+                model=self.model,
             )
 
         except json.JSONDecodeError:
@@ -284,35 +281,27 @@ Extrahiere Branchen-Informationen im JSON-Format."""
 
     def is_available(self) -> bool:
         """Prüft ob Ollama-Server erreichbar ist"""
-        import requests
 
         try:
-            response = self._get_session().get(
-                f"{self.url.rstrip('/')}/api/tags",
-                timeout=5
-            )
+            response = self._get_session().get(f"{self.url.rstrip('/')}/api/tags", timeout=5)
             return response.status_code == 200
         except Exception:
             return False
 
-    def get_available_models(self) -> List[str]:
+    def get_available_models(self) -> list[str]:
         """
         Listet verfügbare Modelle auf
 
         Returns:
             Liste von Modell-Namen
         """
-        import requests
 
         try:
-            response = self._get_session().get(
-                f"{self.url.rstrip('/')}/api/tags",
-                timeout=10
-            )
+            response = self._get_session().get(f"{self.url.rstrip('/')}/api/tags", timeout=10)
             response.raise_for_status()
 
             data = response.json()
-            return [model['name'] for model in data.get('models', [])]
+            return [model["name"] for model in data.get("models", [])]
 
         except Exception:
             return []
@@ -342,23 +331,26 @@ class MockLLMClient(LLMClient):
         self.call_count += 1
 
         return LLMResponse(
-            content=json.dumps({
-                "branch": self.branch,
-                "sub_branches": ["Software", "Beratung"],
-                "services": ["Entwicklung", "Support"],
-                "target_market": "B2B",
-                "company_size_hint": "Medium",
-                "keywords": ["IT", "Software"],
-                "confidence": self.confidence,
-                "reasoning": "Mock analysis"
-            }),
+            content=json.dumps(
+                {
+                    "branch": self.branch,
+                    "sub_branches": ["Software", "Beratung"],
+                    "services": ["Entwicklung", "Support"],
+                    "target_market": "B2B",
+                    "company_size_hint": "Medium",
+                    "keywords": ["IT", "Software"],
+                    "confidence": self.confidence,
+                    "reasoning": "Mock analysis",
+                }
+            ),
             model="mock",
             prompt_tokens=0,
-            completion_tokens=0
+            completion_tokens=0,
         )
 
-    def analyze_branch(self, company_name: str, website_content: Dict[str, Any],
-                       **kwargs) -> BranchAnalysis:
+    def analyze_branch(
+        self, company_name: str, website_content: dict[str, Any], **kwargs
+    ) -> BranchAnalysis:
         """Gibt Mock-BranchAnalysis zurück"""
         self.call_count += 1
 
@@ -371,7 +363,7 @@ class MockLLMClient(LLMClient):
             keywords=["IT", "Software"],
             confidence=self.confidence,
             reasoning="Mock analysis",
-            model="mock"
+            model="mock",
         )
 
     def is_available(self) -> bool:
@@ -380,7 +372,7 @@ class MockLLMClient(LLMClient):
 
 
 # Singleton-Instanz (Lazy)
-_llm_client_instance: Optional[LLMClient] = None
+_llm_client_instance: LLMClient | None = None
 
 
 def get_llm_client() -> LLMClient:

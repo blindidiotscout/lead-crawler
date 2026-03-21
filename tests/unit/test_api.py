@@ -4,8 +4,9 @@ Unit Tests für API Module
 
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 from fastapi.testclient import TestClient
 
 # Add src directory to path for imports
@@ -32,12 +33,7 @@ class TestAPISchemas:
         from api.schemas import SearchRequest
 
         request = SearchRequest(
-            plz="2351",
-            radius_km=20.0,
-            branche="IT",
-            min_score=50.0,
-            page=2,
-            page_size=100
+            plz="2351", radius_km=20.0, branche="IT", min_score=50.0, page=2, page_size=100
         )
         assert request.plz == "2351"
         assert request.radius_km == 20.0
@@ -54,7 +50,7 @@ class TestAPISchemas:
             company_name="Test GmbH",
             website_url="https://example.com",
             skip_cache=True,
-            include_scoring=True
+            include_scoring=True,
         )
         assert request.company_name == "Test GmbH"
         assert request.website_url == "https://example.com"
@@ -62,12 +58,9 @@ class TestAPISchemas:
 
     def test_export_request(self):
         """ExportRequest"""
-        from api.schemas import ExportRequest, ExportFormatEnum
+        from api.schemas import ExportFormatEnum, ExportRequest
 
-        request = ExportRequest(
-            format=ExportFormatEnum.JSON,
-            min_score=60.0
-        )
+        request = ExportRequest(format=ExportFormatEnum.JSON, min_score=60.0)
         assert request.format == ExportFormatEnum.JSON
         assert request.min_score == 60.0
 
@@ -81,14 +74,12 @@ class TestAPISchemas:
 
     def test_company_response(self):
         """CompanyResponse"""
-        from api.schemas import CompanyResponse, CompanySourceEnum
         from datetime import datetime
 
+        from api.schemas import CompanyResponse, CompanySourceEnum
+
         response = CompanyResponse(
-            name="Test GmbH",
-            address={},
-            contact={},
-            source=CompanySourceEnum.WKO
+            name="Test GmbH", address={}, contact={}, source=CompanySourceEnum.WKO
         )
         assert response.name == "Test GmbH"
         assert response.source == CompanySourceEnum.WKO
@@ -98,11 +89,7 @@ class TestAPISchemas:
         """ErrorResponse"""
         from api.schemas import ErrorResponse
 
-        response = ErrorResponse(
-            error="Test Error",
-            detail="Test Detail",
-            code="TEST_ERROR"
-        )
+        response = ErrorResponse(error="Test Error", detail="Test Detail", code="TEST_ERROR")
         assert response.error == "Test Error"
         assert response.detail == "Test Detail"
         assert response.code == "TEST_ERROR"
@@ -115,7 +102,7 @@ class TestAPISchemas:
             status="ok",
             version="2.0.0",
             services={"cache": True, "llm": True},
-            uptime_seconds=123.45
+            uptime_seconds=123.45,
         )
         assert response.status == "ok"
         assert response.version == "2.0.0"
@@ -137,11 +124,7 @@ class TestDependencies:
         """CompanyFilter"""
         from api.dependencies import CompanyFilter
 
-        filter = CompanyFilter(
-            branche="IT",
-            min_score=50.0,
-            include_analysis=True
-        )
+        filter = CompanyFilter(branche="IT", min_score=50.0, include_analysis=True)
         assert filter.branche == "IT"
         assert filter.min_score == 50.0
         assert filter.include_analysis is True
@@ -192,10 +175,7 @@ class TestSearchEndpoints:
         from api.main import app
 
         client = TestClient(app)
-        response = client.post("/api/v1/search", json={
-            "plz": "2351",
-            "page_size": 10
-        })
+        response = client.post("/api/v1/search", json={"plz": "2351", "page_size": 10})
 
         assert response.status_code in [200, 401, 422]
 
@@ -214,10 +194,7 @@ class TestSearchEndpoints:
         from api.main import app
 
         client = TestClient(app)
-        response = client.post("/api/v1/search/radius", json={
-            "plz": "2351",
-            "radius_km": 10.0
-        })
+        response = client.post("/api/v1/search/radius", json={"plz": "2351", "radius_km": 10.0})
 
         assert response.status_code in [200, 401, 422]
 
@@ -230,10 +207,10 @@ class TestCompanyEndpoints:
         from api.main import app
 
         client = TestClient(app)
-        response = client.post("/api/v1/company/analyze", json={
-            "company_name": "Test GmbH",
-            "website_url": "https://example.com"
-        })
+        response = client.post(
+            "/api/v1/company/analyze",
+            json={"company_name": "Test GmbH", "website_url": "https://example.com"},
+        )
 
         assert response.status_code in [200, 401, 422]
 
@@ -255,9 +232,7 @@ class TestExportEndpoints:
         from api.main import app
 
         client = TestClient(app)
-        response = client.post("/api/v1/export", json={
-            "format": "json"
-        })
+        response = client.post("/api/v1/export", json={"format": "json"})
 
         assert response.status_code in [200, 401, 422]
 
@@ -307,10 +282,7 @@ class TestErrorHandling:
 
         client = TestClient(app)
         # Invalid PLZ (not 4 digits)
-        response = client.post("/api/v1/search/radius", json={
-            "plz": "12",
-            "radius_km": 10.0
-        })
+        response = client.post("/api/v1/search/radius", json={"plz": "12", "radius_km": 10.0})
 
         assert response.status_code == 422
 

@@ -5,16 +5,14 @@ Service für PLZ-Verwaltung und Radius-Berechnung
 
 import math
 import sqlite3
-from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import Any
 
-from lead_crawler.config import get_settings, PLZConfig
+from lead_crawler.config import PLZConfig, get_settings
 from lead_crawler.models.plz import (
     PLZCoordinate,
     PLZInfo,
     PLZSearchResult,
-    Bundesland,
     plz_to_bundesland,
 )
 
@@ -26,7 +24,7 @@ class PLZDatabase:
     Wrapper um SQLite-Datenbank für PLZ-Geodaten.
     """
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         """
         Initialisiert PLZ-Datenbank
 
@@ -60,8 +58,9 @@ class PLZDatabase:
             """)
             conn.commit()
 
-    def add_plz(self, plz: str, ort: str, lat: float, lon: float,
-                bundesland: Optional[str] = None) -> None:
+    def add_plz(
+        self, plz: str, ort: str, lat: float, lon: float, bundesland: str | None = None
+    ) -> None:
         """
         Fügt eine PLZ zur Datenbank hinzu
 
@@ -76,13 +75,16 @@ class PLZDatabase:
             bundesland = plz_to_bundesland(plz).value
 
         with sqlite3.connect(str(self.db_path)) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT OR REPLACE INTO plz_coordinates (plz, ort, lat, lon, bundesland)
                 VALUES (?, ?, ?, ?, ?)
-            """, (plz, ort, lat, lon, bundesland))
+            """,
+                (plz, ort, lat, lon, bundesland),
+            )
             conn.commit()
 
-    def add_many(self, entries: List[Dict[str, Any]]) -> int:
+    def add_many(self, entries: list[dict[str, Any]]) -> int:
         """
         Fügt mehrere PLZ-Einträge hinzu
 
@@ -94,15 +96,18 @@ class PLZDatabase:
         """
         with sqlite3.connect(str(self.db_path)) as conn:
             for entry in entries:
-                bundesland = entry.get('bundesland') or plz_to_bundesland(entry['plz']).value
-                conn.execute("""
+                bundesland = entry.get("bundesland") or plz_to_bundesland(entry["plz"]).value
+                conn.execute(
+                    """
                     INSERT OR REPLACE INTO plz_coordinates (plz, ort, lat, lon, bundesland)
                     VALUES (?, ?, ?, ?, ?)
-                """, (entry['plz'], entry['ort'], entry['lat'], entry['lon'], bundesland))
+                """,
+                    (entry["plz"], entry["ort"], entry["lat"], entry["lon"], bundesland),
+                )
             conn.commit()
         return len(entries)
 
-    def get_plz(self, plz: str) -> Optional[PLZCoordinate]:
+    def get_plz(self, plz: str) -> PLZCoordinate | None:
         """
         Ruft PLZ-Koordinaten ab
 
@@ -114,22 +119,25 @@ class PLZDatabase:
         """
         with sqlite3.connect(str(self.db_path)) as conn:
             conn.row_factory = sqlite3.Row
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT plz, ort, lat, lon, bundesland FROM plz_coordinates WHERE plz = ?
-            """, (plz,))
+            """,
+                (plz,),
+            )
             row = cursor.fetchone()
 
             if row:
                 return PLZCoordinate(
-                    plz=row['plz'],
-                    ort=row['ort'],
-                    lat=row['lat'],
-                    lon=row['lon'],
-                    bundesland=row['bundesland']
+                    plz=row["plz"],
+                    ort=row["ort"],
+                    lat=row["lat"],
+                    lon=row["lon"],
+                    bundesland=row["bundesland"],
                 )
             return None
 
-    def get_plz_by_ort(self, ort: str, limit: int = 10) -> List[PLZCoordinate]:
+    def get_plz_by_ort(self, ort: str, limit: int = 10) -> list[PLZCoordinate]:
         """
         Sucht PLZ nach Ortsnamen
 
@@ -142,24 +150,27 @@ class PLZDatabase:
         """
         with sqlite3.connect(str(self.db_path)) as conn:
             conn.row_factory = sqlite3.Row
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT plz, ort, lat, lon, bundesland FROM plz_coordinates
                 WHERE ort LIKE ?
                 LIMIT ?
-            """, (f"%{ort}%", limit))
+            """,
+                (f"%{ort}%", limit),
+            )
 
             return [
                 PLZCoordinate(
-                    plz=row['plz'],
-                    ort=row['ort'],
-                    lat=row['lat'],
-                    lon=row['lon'],
-                    bundesland=row['bundesland']
+                    plz=row["plz"],
+                    ort=row["ort"],
+                    lat=row["lat"],
+                    lon=row["lon"],
+                    bundesland=row["bundesland"],
                 )
                 for row in cursor.fetchall()
             ]
 
-    def get_all_plz(self) -> List[PLZCoordinate]:
+    def get_all_plz(self) -> list[PLZCoordinate]:
         """
         Ruft alle PLZ aus der Datenbank ab
 
@@ -174,16 +185,16 @@ class PLZDatabase:
 
             return [
                 PLZCoordinate(
-                    plz=row['plz'],
-                    ort=row['ort'],
-                    lat=row['lat'],
-                    lon=row['lon'],
-                    bundesland=row['bundesland']
+                    plz=row["plz"],
+                    ort=row["ort"],
+                    lat=row["lat"],
+                    lon=row["lon"],
+                    bundesland=row["bundesland"],
                 )
                 for row in cursor.fetchall()
             ]
 
-    def get_plz_by_bundesland(self, bundesland: str) -> List[PLZCoordinate]:
+    def get_plz_by_bundesland(self, bundesland: str) -> list[PLZCoordinate]:
         """
         Ruft alle PLZ eines Bundeslands ab
 
@@ -195,18 +206,21 @@ class PLZDatabase:
         """
         with sqlite3.connect(str(self.db_path)) as conn:
             conn.row_factory = sqlite3.Row
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT plz, ort, lat, lon, bundesland FROM plz_coordinates
                 WHERE bundesland = ?
-            """, (bundesland,))
+            """,
+                (bundesland,),
+            )
 
             return [
                 PLZCoordinate(
-                    plz=row['plz'],
-                    ort=row['ort'],
-                    lat=row['lat'],
-                    lon=row['lon'],
-                    bundesland=row['bundesland']
+                    plz=row["plz"],
+                    ort=row["ort"],
+                    lat=row["lat"],
+                    lon=row["lon"],
+                    bundesland=row["bundesland"],
                 )
                 for row in cursor.fetchall()
             ]
@@ -245,8 +259,10 @@ class HaversineCalculator:
         delta_lat = math.radians(lat2 - lat1)
         delta_lon = math.radians(lon2 - lon1)
 
-        a = (math.sin(delta_lat / 2) ** 2 +
-             math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2)
+        a = (
+            math.sin(delta_lat / 2) ** 2
+            + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
+        )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
         return cls.ERDE_RADIUS_KM * c
@@ -273,7 +289,7 @@ class PLZService:
     Kombiniert Datenbank-Zugriff und Distanz-Berechnung.
     """
 
-    def __init__(self, config: Optional[PLZConfig] = None):
+    def __init__(self, config: PLZConfig | None = None):
         """
         Initialisiert PLZ-Service
 
@@ -288,8 +304,7 @@ class PLZService:
         self.default_radius = config.default_radius_km
         self.max_radius = config.max_radius_km
 
-    def find_in_radius(self, center_plz: str, radius_km: Optional[float] = None
-                       ) -> PLZSearchResult:
+    def find_in_radius(self, center_plz: str, radius_km: float | None = None) -> PLZSearchResult:
         """
         Findet alle PLZ im gegebenen Radius um eine Ziel-PLZ
 
@@ -322,14 +337,9 @@ class PLZService:
         # Sortiere nach Distanz
         results.sort(key=lambda x: x[1])
 
-        return PLZSearchResult(
-            center_plz=center_plz,
-            radius_km=radius_km,
-            results=results
-        )
+        return PLZSearchResult(center_plz=center_plz, radius_km=radius_km, results=results)
 
-    def find_nearby_plz(self, center_plz: str, radius_km: Optional[float] = None
-                        ) -> List[str]:
+    def find_nearby_plz(self, center_plz: str, radius_km: float | None = None) -> list[str]:
         """
         Gibt alle PLZ im Radius zurück (nur PLZ-Codes)
 
@@ -343,7 +353,7 @@ class PLZService:
         result = self.find_in_radius(center_plz, radius_km)
         return result.plzs
 
-    def get_plz_info(self, plz: str) -> Optional[PLZInfo]:
+    def get_plz_info(self, plz: str) -> PLZInfo | None:
         """
         Gibt alle Informationen zu einer PLZ zurück
 
@@ -360,7 +370,7 @@ class PLZService:
 
         return PLZInfo(plz=plz, coordinates=[coord])
 
-    def get_wko_urls(self, plz: str) -> List[str]:
+    def get_wko_urls(self, plz: str) -> list[str]:
         """
         Generiert WKO-URLs für eine PLZ
 
@@ -376,7 +386,7 @@ class PLZService:
 
         return info.get_wko_urls()
 
-    def get_plz_by_ort(self, ort: str, limit: int = 10) -> List[PLZCoordinate]:
+    def get_plz_by_ort(self, ort: str, limit: int = 10) -> list[PLZCoordinate]:
         """
         Sucht PLZ nach Ortsnamen
 
@@ -407,7 +417,7 @@ class PLZService:
 
 
 # Singleton-Instanz (Lazy)
-_plz_service_instance: Optional[PLZService] = None
+_plz_service_instance: PLZService | None = None
 
 
 def get_plz_service() -> PLZService:
@@ -436,7 +446,7 @@ def get_plz_lookup() -> PLZDatabase:
 
 
 # Seed-Funktion für Test-Daten
-def seed_sample_data(db: Optional[PLZDatabase] = None) -> None:
+def seed_sample_data(db: PLZDatabase | None = None) -> None:
     """
     Fügt Beispiel-PLZ-Daten hinzu (für Testing)
 
@@ -447,21 +457,99 @@ def seed_sample_data(db: Optional[PLZDatabase] = None) -> None:
         db = PLZDatabase()
 
     sample_data = [
-        {"plz": "1010", "ort": "Wien Innere Stadt", "lat": 48.2082, "lon": 16.3719, "bundesland": "Wien"},
-        {"plz": "1100", "ort": "Wien Favoriten", "lat": 48.1533, "lon": 16.3772, "bundesland": "Wien"},
-        {"plz": "1220", "ort": "Wien Donaustadt", "lat": 48.2167, "lon": 16.4167, "bundesland": "Wien"},
-        {"plz": "2351", "ort": "Guntramsdorf", "lat": 48.1067, "lon": 16.3256, "bundesland": "Niederösterreich"},
-        {"plz": "2353", "ort": "Wiener Neudorf", "lat": 48.1167, "lon": 16.3167, "bundesland": "Niederösterreich"},
-        {"plz": "2340", "ort": "Mödling", "lat": 48.0856, "lon": 16.2892, "bundesland": "Niederösterreich"},
-        {"plz": "2334", "ort": "Vösendorf", "lat": 48.1167, "lon": 16.3167, "bundesland": "Niederösterreich"},
-        {"plz": "2500", "ort": "Baden", "lat": 48.0067, "lon": 16.2317, "bundesland": "Niederösterreich"},
-        {"plz": "2320", "ort": "Schwechat", "lat": 48.1333, "lon": 16.3667, "bundesland": "Niederösterreich"},
-        {"plz": "2460", "ort": "Bruck an der Leitha", "lat": 48.0167, "lon": 16.8167, "bundesland": "Niederösterreich"},
-        {"plz": "4020", "ort": "Linz", "lat": 48.3069, "lon": 14.2858, "bundesland": "Oberösterreich"},
-        {"plz": "5020", "ort": "Salzburg", "lat": 47.8095, "lon": 13.0550, "bundesland": "Salzburg"},
+        {
+            "plz": "1010",
+            "ort": "Wien Innere Stadt",
+            "lat": 48.2082,
+            "lon": 16.3719,
+            "bundesland": "Wien",
+        },
+        {
+            "plz": "1100",
+            "ort": "Wien Favoriten",
+            "lat": 48.1533,
+            "lon": 16.3772,
+            "bundesland": "Wien",
+        },
+        {
+            "plz": "1220",
+            "ort": "Wien Donaustadt",
+            "lat": 48.2167,
+            "lon": 16.4167,
+            "bundesland": "Wien",
+        },
+        {
+            "plz": "2351",
+            "ort": "Guntramsdorf",
+            "lat": 48.1067,
+            "lon": 16.3256,
+            "bundesland": "Niederösterreich",
+        },
+        {
+            "plz": "2353",
+            "ort": "Wiener Neudorf",
+            "lat": 48.1167,
+            "lon": 16.3167,
+            "bundesland": "Niederösterreich",
+        },
+        {
+            "plz": "2340",
+            "ort": "Mödling",
+            "lat": 48.0856,
+            "lon": 16.2892,
+            "bundesland": "Niederösterreich",
+        },
+        {
+            "plz": "2334",
+            "ort": "Vösendorf",
+            "lat": 48.1167,
+            "lon": 16.3167,
+            "bundesland": "Niederösterreich",
+        },
+        {
+            "plz": "2500",
+            "ort": "Baden",
+            "lat": 48.0067,
+            "lon": 16.2317,
+            "bundesland": "Niederösterreich",
+        },
+        {
+            "plz": "2320",
+            "ort": "Schwechat",
+            "lat": 48.1333,
+            "lon": 16.3667,
+            "bundesland": "Niederösterreich",
+        },
+        {
+            "plz": "2460",
+            "ort": "Bruck an der Leitha",
+            "lat": 48.0167,
+            "lon": 16.8167,
+            "bundesland": "Niederösterreich",
+        },
+        {
+            "plz": "4020",
+            "ort": "Linz",
+            "lat": 48.3069,
+            "lon": 14.2858,
+            "bundesland": "Oberösterreich",
+        },
+        {
+            "plz": "5020",
+            "ort": "Salzburg",
+            "lat": 47.8095,
+            "lon": 13.0550,
+            "bundesland": "Salzburg",
+        },
         {"plz": "6020", "ort": "Innsbruck", "lat": 47.2692, "lon": 11.4041, "bundesland": "Tirol"},
         {"plz": "8010", "ort": "Graz", "lat": 47.0707, "lon": 15.4395, "bundesland": "Steiermark"},
-        {"plz": "9020", "ort": "Klagenfurt", "lat": 46.6247, "lon": 14.3088, "bundesland": "Kärnten"},
+        {
+            "plz": "9020",
+            "ort": "Klagenfurt",
+            "lat": 46.6247,
+            "lon": 14.3088,
+            "bundesland": "Kärnten",
+        },
     ]
 
     db.add_many(sample_data)

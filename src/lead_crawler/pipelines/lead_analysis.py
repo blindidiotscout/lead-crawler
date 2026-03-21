@@ -3,30 +3,31 @@ Lead Analysis Pipeline
 End-to-End Pipeline für Branchen-Analyse mit Caching und Scoring
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime
-from enum import Enum
-from typing import Optional, Dict, List, Any, Callable
-import time
 import logging
+import time
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any
 
-from lead_crawler.config import get_settings, Settings
+from lead_crawler.config import Settings, get_settings
+from lead_crawler.crawlers.base import CrawlerResult
 from lead_crawler.models import (
-    Company,
     BranchAnalysis,
-    LLMAnalysisResult,
+    Company,
     LeadScore,
+    LLMAnalysisResult,
     ScoreBreakdown,
 )
-from lead_crawler.services.cache import get_cache, reset_cache
-from lead_crawler.services.llm_client import get_llm_client, MockLLMClient
-from lead_crawler.services.website_extractor import get_website_extractor, WebsiteContent
+from lead_crawler.services.cache import get_cache
+from lead_crawler.services.llm_client import get_llm_client
 from lead_crawler.services.plz_service import get_plz_service
-from lead_crawler.crawlers.base import CrawlerResult
+from lead_crawler.services.website_extractor import get_website_extractor
 
 
 class PipelineStage(Enum):
     """Pipeline-Stufen"""
+
     CRAWL = "crawl"
     EXTRACT = "extract"
     ANALYZE = "analyze"
@@ -38,18 +39,19 @@ class PipelineStage(Enum):
 @dataclass
 class PipelineResult:
     """Ergebnis der Lead-Analysis-Pipeline"""
+
     # Company
     company: Company
 
     # Analysis
-    analysis: Optional[LLMAnalysisResult] = None
+    analysis: LLMAnalysisResult | None = None
 
     # Score
-    score: Optional[LeadScore] = None
+    score: LeadScore | None = None
 
     # Pipeline Stats
-    stages_completed: List[PipelineStage] = field(default_factory=list)
-    errors: List[Dict[str, str]] = field(default_factory=list)
+    stages_completed: list[PipelineStage] = field(default_factory=list)
+    errors: list[dict[str, str]] = field(default_factory=list)
 
     # Timing
     total_time: float = 0.0
@@ -59,18 +61,18 @@ class PipelineResult:
     # Cache
     from_cache: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
         return {
-            'company': self.company.to_dict(),
-            'analysis': self.analysis.to_dict() if self.analysis else None,
-            'score': self.score.to_dict() if self.score else None,
-            'stages_completed': [s.value for s in self.stages_completed],
-            'errors': self.errors,
-            'total_time': self.total_time,
-            'crawl_time': self.crawl_time,
-            'analyze_time': self.analyze_time,
-            'from_cache': self.from_cache,
+            "company": self.company.to_dict(),
+            "analysis": self.analysis.to_dict() if self.analysis else None,
+            "score": self.score.to_dict() if self.score else None,
+            "stages_completed": [s.value for s in self.stages_completed],
+            "errors": self.errors,
+            "total_time": self.total_time,
+            "crawl_time": self.crawl_time,
+            "analyze_time": self.analyze_time,
+            "from_cache": self.from_cache,
         }
 
     @property
@@ -82,7 +84,8 @@ class PipelineResult:
 @dataclass
 class BatchResult:
     """Ergebnis einer Batch-Analyse"""
-    results: List[PipelineResult] = field(default_factory=list)
+
+    results: list[PipelineResult] = field(default_factory=list)
     total: int = 0
     successful: int = 0
     failed: int = 0
@@ -93,7 +96,7 @@ class BatchResult:
     avg_time_per_company: float = 0.0
 
     # Progress
-    progress_callback: Optional[Callable[[int, int], None]] = field(default=None, repr=False)
+    progress_callback: Callable[[int, int], None] | None = field(default=None, repr=False)
 
     def add_result(self, result: PipelineResult) -> None:
         """Fügt Ergebnis hinzu"""
@@ -111,16 +114,16 @@ class BatchResult:
         if self.progress_callback:
             self.progress_callback(len(self.results), self.total)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
         return {
-            'total': self.total,
-            'successful': self.successful,
-            'failed': self.failed,
-            'cached': self.cached,
-            'total_time': self.total_time,
-            'avg_time_per_company': self.avg_time_per_company,
-            'results': [r.to_dict() for r in self.results]
+            "total": self.total,
+            "successful": self.successful,
+            "failed": self.failed,
+            "cached": self.cached,
+            "total_time": self.total_time,
+            "avg_time_per_company": self.avg_time_per_company,
+            "results": [r.to_dict() for r in self.results],
         }
 
 
@@ -145,7 +148,7 @@ class LeadAnalysisPipeline:
         results = pipeline.analyze_batch(companies)
     """
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """
         Initialisiert Pipeline
 
@@ -163,10 +166,10 @@ class LeadAnalysisPipeline:
 
         # Stats
         self._stats = {
-            'companies_processed': 0,
-            'analyses_completed': 0,
-            'cache_hits': 0,
-            'errors': 0
+            "companies_processed": 0,
+            "analyses_completed": 0,
+            "cache_hits": 0,
+            "errors": 0,
         }
 
     def analyze(
@@ -175,7 +178,7 @@ class LeadAnalysisPipeline:
         skip_cache: bool = False,
         skip_analysis: bool = False,
         skip_scoring: bool = False,
-        **kwargs
+        **kwargs,
     ) -> PipelineResult:
         """
         Analysiert ein einzelnes Unternehmen
@@ -208,23 +211,20 @@ class LeadAnalysisPipeline:
 
         except Exception as e:
             self.logger.error(f"Pipeline error for {company.name}: {e}")
-            result.errors.append({
-                'stage': 'pipeline',
-                'error': str(e)
-            })
+            result.errors.append({"stage": "pipeline", "error": str(e)})
 
         # Timing
         result.total_time = time.time() - start_time
-        self._stats['companies_processed'] += 1
+        self._stats["companies_processed"] += 1
 
         if result.is_successful:
-            self._stats['analyses_completed'] += 1
+            self._stats["analyses_completed"] += 1
 
         if result.from_cache:
-            self._stats['cache_hits'] += 1
+            self._stats["cache_hits"] += 1
 
         if result.errors:
-            self._stats['errors'] += len(result.errors)
+            self._stats["errors"] += len(result.errors)
 
         return result
 
@@ -233,7 +233,7 @@ class LeadAnalysisPipeline:
         website_url = result.company.contact.website
 
         if not website_url:
-            result.errors.append({'stage': 'extract', 'error': 'No website URL'})
+            result.errors.append({"stage": "extract", "error": "No website URL"})
             return result
 
         try:
@@ -243,10 +243,7 @@ class LeadAnalysisPipeline:
             result.crawl_time = time.time() - crawl_start
 
             if website_content.error:
-                result.errors.append({
-                    'stage': 'extract',
-                    'error': website_content.error
-                })
+                result.errors.append({"stage": "extract", "error": website_content.error})
                 return result
 
             # Website-Content in LLMAnalysisResult speichern
@@ -255,17 +252,14 @@ class LeadAnalysisPipeline:
                 website_url=website_url,
                 website_word_count=website_content.word_count,
                 website_title=website_content.title,
-                crawl_time=result.crawl_time
+                crawl_time=result.crawl_time,
             )
 
             result.stages_completed.append(PipelineStage.EXTRACT)
             self.logger.debug(f"Extracted {website_content.word_count} words from {website_url}")
 
         except Exception as e:
-            result.errors.append({
-                'stage': 'extract',
-                'error': str(e)
-            })
+            result.errors.append({"stage": "extract", "error": str(e)})
 
         return result
 
@@ -281,14 +275,14 @@ class LeadAnalysisPipeline:
 
                 # Cached Analysis in BranchAnalysis umwandeln
                 branch_analysis = BranchAnalysis(
-                    branch=cached.get('branch', 'Unknown'),
-                    sub_branches=cached.get('sub_branches', []),
-                    services=cached.get('services', []),
-                    target_market=cached.get('target_market', 'Unknown'),
-                    company_size_hint=cached.get('company_size_hint', 'Unknown'),
-                    keywords=cached.get('keywords', []),
-                    confidence=cached.get('confidence', 0.0),
-                    reasoning=cached.get('reasoning', '')
+                    branch=cached.get("branch", "Unknown"),
+                    sub_branches=cached.get("sub_branches", []),
+                    services=cached.get("services", []),
+                    target_market=cached.get("target_market", "Unknown"),
+                    company_size_hint=cached.get("company_size_hint", "Unknown"),
+                    keywords=cached.get("keywords", []),
+                    confidence=cached.get("confidence", 0.0),
+                    reasoning=cached.get("reasoning", ""),
                 )
 
                 result.analysis = LLMAnalysisResult(
@@ -296,7 +290,7 @@ class LeadAnalysisPipeline:
                     website_url=website_url,
                     analysis=branch_analysis,
                     cached=True,
-                    cached_at=cached.get('_cached_at')
+                    cached_at=cached.get("_cached_at"),
                 )
 
                 result.stages_completed.append(PipelineStage.CACHE)
@@ -310,14 +304,13 @@ class LeadAnalysisPipeline:
 
             # Website-Content für Analyse vorbereiten
             website_content = {
-                'title': result.analysis.website_title if result.analysis else '',
-                'main_text': '',  # Würde von WebsiteExtractor kommen
-                'word_count': result.analysis.website_word_count if result.analysis else 0
+                "title": result.analysis.website_title if result.analysis else "",
+                "main_text": "",  # Würde von WebsiteExtractor kommen
+                "word_count": result.analysis.website_word_count if result.analysis else 0,
             }
 
             branch_analysis = self.llm_client.analyze_branch(
-                company_name=result.company.name,
-                website_content=website_content
+                company_name=result.company.name, website_content=website_content
             )
 
             result.analyze_time = time.time() - analyze_start
@@ -329,7 +322,7 @@ class LeadAnalysisPipeline:
                     analysis=branch_analysis,
                     cached=False,
                     crawl_time=result.crawl_time,
-                    analyze_time=result.analyze_time
+                    analyze_time=result.analyze_time,
                 )
 
                 # Im Cache speichern
@@ -340,16 +333,10 @@ class LeadAnalysisPipeline:
                 self.logger.debug(f"Analyzed {result.company.name}: {branch_analysis.branch}")
 
             else:
-                result.errors.append({
-                    'stage': 'analyze',
-                    'error': 'LLM analysis returned None'
-                })
+                result.errors.append({"stage": "analyze", "error": "LLM analysis returned None"})
 
         except Exception as e:
-            result.errors.append({
-                'stage': 'analyze',
-                'error': str(e)
-            })
+            result.errors.append({"stage": "analyze", "error": str(e)})
 
         return result
 
@@ -357,7 +344,6 @@ class LeadAnalysisPipeline:
         """Stage 3: Lead-Scoring"""
         try:
             company = result.company
-            weights = self.settings.scoring.weights
 
             # Score-Breakdown berechnen
             breakdown = ScoreBreakdown()
@@ -404,9 +390,9 @@ class LeadAnalysisPipeline:
             size_score = 5.0  # Default
             if result.analysis and result.analysis.analysis:
                 size_hint = result.analysis.analysis.company_size_hint
-                if 'Medium' in size_hint or 'Large' in size_hint:
+                if "Medium" in size_hint or "Large" in size_hint:
                     size_score = 8.0
-                elif 'Small' in size_hint:
+                elif "Small" in size_hint:
                     size_score = 6.0
             breakdown.size = size_score
 
@@ -419,19 +405,16 @@ class LeadAnalysisPipeline:
             )
 
         except Exception as e:
-            result.errors.append({
-                'stage': 'score',
-                'error': str(e)
-            })
+            result.errors.append({"stage": "score", "error": str(e)})
 
         return result
 
     def analyze_batch(
         self,
-        companies: List[Company],
+        companies: list[Company],
         skip_cache: bool = False,
-        progress_callback: Optional[Callable[[int, int], None]] = None,
-        **kwargs
+        progress_callback: Callable[[int, int], None] | None = None,
+        **kwargs,
     ) -> BatchResult:
         """
         Analysiert mehrere Unternehmen (Batch)
@@ -465,11 +448,7 @@ class LeadAnalysisPipeline:
 
         return batch_result
 
-    def analyze_from_crawler(
-        self,
-        crawler_result: CrawlerResult,
-        **kwargs
-    ) -> BatchResult:
+    def analyze_from_crawler(self, crawler_result: CrawlerResult, **kwargs) -> BatchResult:
         """
         Analysiert Ergebnisse aus einem Crawler-Run
 
@@ -482,25 +461,23 @@ class LeadAnalysisPipeline:
         """
         return self.analyze_batch(crawler_result.companies, **kwargs)
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """Gibt Pipeline-Statistiken zurück"""
         return self._stats.copy()
 
     def reset_stats(self) -> None:
         """Setzt Statistiken zurück"""
         self._stats = {
-            'companies_processed': 0,
-            'analyses_completed': 0,
-            'cache_hits': 0,
-            'errors': 0
+            "companies_processed": 0,
+            "analyses_completed": 0,
+            "cache_hits": 0,
+            "errors": 0,
         }
 
 
 # Convenience-Funktionen
 def run_analysis(
-    companies: List[Company],
-    settings: Optional[Settings] = None,
-    **kwargs
+    companies: list[Company], settings: Settings | None = None, **kwargs
 ) -> BatchResult:
     """
     Convenience-Funktion für Batch-Analyse
@@ -519,9 +496,9 @@ def run_analysis(
 
 
 __all__ = [
-    'LeadAnalysisPipeline',
-    'PipelineResult',
-    'PipelineStage',
-    'BatchResult',
-    'run_analysis',
+    "LeadAnalysisPipeline",
+    "PipelineResult",
+    "PipelineStage",
+    "BatchResult",
+    "run_analysis",
 ]

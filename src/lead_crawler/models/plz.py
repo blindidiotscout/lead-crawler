@@ -3,13 +3,14 @@ PLZ Domain Models
 Definiert Postleitzahlen- und Geodaten-Modelle
 """
 
-from dataclasses import dataclass, field, asdict
-from typing import Optional, Dict, List, Any, Tuple
+from dataclasses import asdict, dataclass, field
 from enum import Enum
+from typing import Any
 
 
 class Bundesland(Enum):
     """Österreichische Bundesländer"""
+
     WIEN = "Wien"
     NIEDEROESTERREICH = "Niederösterreich"
     OBEROESTERREICH = "Oberösterreich"
@@ -80,19 +81,20 @@ class PLZCoordinate:
 
     Enthält Geokoordinaten und Ortsinformationen
     """
+
     plz: str  # 4-stellige PLZ
     ort: str  # Ortsname
     bundesland: str  # Bundesland
-    bezirk: Optional[str] = None  # Politischer Bezirk
+    bezirk: str | None = None  # Politischer Bezirk
     lat: float = 0.0  # Breitengrad
     lon: float = 0.0  # Längengrad
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PLZCoordinate":
+    def from_dict(cls, data: dict[str, Any]) -> "PLZCoordinate":
         """Erstellt PLZCoordinate aus Dictionary"""
         return cls(
             plz=data.get("plz", ""),
@@ -100,7 +102,7 @@ class PLZCoordinate:
             bundesland=data.get("bundesland", ""),
             bezirk=data.get("bezirk"),
             lat=data.get("lat", 0.0),
-            lon=data.get("lon", 0.0)
+            lon=data.get("lon", 0.0),
         )
 
     @property
@@ -123,7 +125,7 @@ class PLZCoordinate:
         import math
 
         # Haversine-Formel
-        R = 6371  # Erdradius in km
+        earth_radius = 6371  # Erdradius in km
 
         lat1 = math.radians(self.lat)
         lat2 = math.radians(other.lat)
@@ -133,7 +135,7 @@ class PLZCoordinate:
         a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-        return R * c
+        return earth_radius * c
 
     def __str__(self) -> str:
         """String-Repräsentation"""
@@ -147,34 +149,26 @@ class PLZInfo:
 
     Enthält alle Daten zu einer PLZ inkl. Geodaten
     """
+
     plz: str
-    coordinates: List[PLZCoordinate] = field(default_factory=list)
+    coordinates: list[PLZCoordinate] = field(default_factory=list)
 
     # Cache für häufige Abfragen
-    _primary_ort: Optional[str] = None
-    _primary_coordinate: Optional[PLZCoordinate] = None
+    _primary_ort: str | None = None
+    _primary_coordinate: PLZCoordinate | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
-        return {
-            "plz": self.plz,
-            "orte": [c.to_dict() for c in self.coordinates]
-        }
+        return {"plz": self.plz, "orte": [c.to_dict() for c in self.coordinates]}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PLZInfo":
+    def from_dict(cls, data: dict[str, Any]) -> "PLZInfo":
         """Erstellt PLZInfo aus Dictionary"""
-        coordinates = [
-            PLZCoordinate.from_dict(c)
-            for c in data.get("coordinates", [])
-        ]
-        return cls(
-            plz=data.get("plz", ""),
-            coordinates=coordinates
-        )
+        coordinates = [PLZCoordinate.from_dict(c) for c in data.get("coordinates", [])]
+        return cls(plz=data.get("plz", ""), coordinates=coordinates)
 
     @property
-    def orte(self) -> List[str]:
+    def orte(self) -> list[str]:
         """Alle Orte für diese PLZ"""
         return list(set(c.ort for c in self.coordinates))
 
@@ -186,7 +180,7 @@ class PLZInfo:
         return self._primary_ort
 
     @property
-    def primary_coordinate(self) -> Optional[PLZCoordinate]:
+    def primary_coordinate(self) -> PLZCoordinate | None:
         """Hauptkoordinate für diese PLZ"""
         if self._primary_coordinate is None and self.coordinates:
             self._primary_coordinate = self.coordinates[0]
@@ -197,7 +191,7 @@ class PLZInfo:
         """Bundesland der PLZ"""
         return self.coordinates[0].bundesland if self.coordinates else ""
 
-    def get_wko_urls(self) -> List[str]:
+    def get_wko_urls(self) -> list[str]:
         """
         Generiert WKO-URLs für alle Orte dieser PLZ
 
@@ -206,7 +200,7 @@ class PLZInfo:
         """
         urls = []
         for coord in self.coordinates:
-            ort = coord.ort.lower().replace(' ', '-')
+            ort = coord.ort.lower().replace(" ", "-")
             bundesland = coord.bundesland.lower()
             urls.append(f"https://firmen.wko.at/{ort}/{bundesland}")
         return urls
@@ -226,11 +220,14 @@ class PLZSearchResult:
 
     Enthält alle gefundenen PLZ mit Distanzen
     """
+
     center_plz: str
     radius_km: float
-    results: List[Tuple[PLZCoordinate, float]] = field(default_factory=list)  # (coordinate, distance)
+    results: list[tuple[PLZCoordinate, float]] = field(
+        default_factory=list
+    )  # (coordinate, distance)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
         return {
             "center_plz": self.center_plz,
@@ -238,7 +235,7 @@ class PLZSearchResult:
             "results": [
                 {"plz": coord.plz, "ort": coord.ort, "distance_km": dist}
                 for coord, dist in self.results
-            ]
+            ],
         }
 
     @property
@@ -247,7 +244,7 @@ class PLZSearchResult:
         return len(self.results)
 
     @property
-    def plzs(self) -> List[str]:
+    def plzs(self) -> list[str]:
         """Alle gefundenen PLZ (einzigartig)"""
         return list(set(coord.plz for coord, _ in self.results))
 
@@ -273,9 +270,7 @@ class PLZSearchResult:
         """
         filtered = [(coord, dist) for coord, dist in self.results if dist <= max_km]
         return PLZSearchResult(
-            center_plz=self.center_plz,
-            radius_km=self.radius_km,
-            results=filtered
+            center_plz=self.center_plz, radius_km=self.radius_km, results=filtered
         )
 
     def sort_by_distance(self) -> "PLZSearchResult":
@@ -287,9 +282,7 @@ class PLZSearchResult:
         """
         sorted_results = sorted(self.results, key=lambda x: x[1])
         return PLZSearchResult(
-            center_plz=self.center_plz,
-            radius_km=self.radius_km,
-            results=sorted_results
+            center_plz=self.center_plz, radius_km=self.radius_km, results=sorted_results
         )
 
     def __str__(self) -> str:
@@ -298,6 +291,7 @@ class PLZSearchResult:
 
 
 # Convenience Functions
+
 
 def plz_to_bundesland(plz: str) -> Bundesland:
     """

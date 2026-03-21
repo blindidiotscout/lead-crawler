@@ -3,16 +3,16 @@ Lead Crawler Configuration
 Zentrale Konfiguration für alle Komponenten
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
-from pathlib import Path
-import os
 import json
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
 
 
 @dataclass
 class OllamaConfig:
     """Ollama LLM Konfiguration"""
+
     url: str = "http://localhost:11434"
     model: str = "qwen2.5:7b"
     embedding_model: str = "nomic-embed-text"
@@ -29,13 +29,14 @@ class OllamaConfig:
             embedding_model=os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text"),
             timeout=int(os.getenv("OLLAMA_TIMEOUT", "300")),
             max_retries=int(os.getenv("OLLAMA_MAX_RETRIES", "3")),
-            retry_delay=float(os.getenv("OLLAMA_RETRY_DELAY", "1.0"))
+            retry_delay=float(os.getenv("OLLAMA_RETRY_DELAY", "1.0")),
         )
 
 
 @dataclass
 class CacheConfig:
     """Cache Konfiguration"""
+
     db_path: Path = field(default_factory=lambda: Path("data/analysis_cache.db"))
     ttl_days: int = 30
     max_entries: int = 100000
@@ -48,13 +49,14 @@ class CacheConfig:
             db_path=Path(os.getenv("CACHE_DB_PATH", "data/analysis_cache.db")),
             ttl_days=int(os.getenv("CACHE_TTL_DAYS", "30")),
             max_entries=int(os.getenv("CACHE_MAX_ENTRIES", "100000")),
-            cleanup_interval_hours=int(os.getenv("CACHE_CLEANUP_HOURS", "24"))
+            cleanup_interval_hours=int(os.getenv("CACHE_CLEANUP_HOURS", "24")),
         )
 
 
 @dataclass
 class PLZConfig:
     """PLZ-Datenbank Konfiguration"""
+
     db_path: Path = field(default_factory=lambda: Path("data/plz_austria.db"))
     default_radius_km: float = 20.0
     max_radius_km: float = 100.0
@@ -65,14 +67,17 @@ class PLZConfig:
         return cls(
             db_path=Path(os.getenv("PLZ_DB_PATH", "data/plz_austria.db")),
             default_radius_km=float(os.getenv("PLZ_DEFAULT_RADIUS", "20.0")),
-            max_radius_km=float(os.getenv("PLZ_MAX_RADIUS", "100.0"))
+            max_radius_km=float(os.getenv("PLZ_MAX_RADIUS", "100.0")),
         )
 
 
 @dataclass
 class CrawlerConfig:
     """Crawler Konfiguration"""
-    user_agent: str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+    user_agent: str = (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    )
     rate_limit: float = 2.0  # Sekunden zwischen Requests
     concurrent_requests: int = 1
     timeout: int = 30  # Sekunden
@@ -93,8 +98,9 @@ class CrawlerConfig:
     def from_env(cls) -> "CrawlerConfig":
         """Lädt Konfiguration aus Umgebungsvariablen"""
         return cls(
-            user_agent=os.getenv("CRAWLER_USER_AGENT", 
-                               "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"),
+            user_agent=os.getenv(
+                "CRAWLER_USER_AGENT", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+            ),
             rate_limit=float(os.getenv("CRAWLER_RATE_LIMIT", "2.0")),
             concurrent_requests=int(os.getenv("CRAWLER_CONCURRENT", "1")),
             timeout=int(os.getenv("CRAWLER_TIMEOUT", "30")),
@@ -105,38 +111,45 @@ class CrawlerConfig:
             wko_timeout=int(os.getenv("WKO_TIMEOUT", "30")),
             website_timeout=int(os.getenv("WEBSITE_TIMEOUT", "15")),
             website_max_words=int(os.getenv("WEBSITE_MAX_WORDS", "800")),
-            website_delay=float(os.getenv("WEBSITE_DELAY", "1.0"))
+            website_delay=float(os.getenv("WEBSITE_DELAY", "1.0")),
         )
 
 
 @dataclass
 class ScoringConfig:
     """Scoring Konfiguration"""
+
     # Gewichtungen (Summe = 100)
-    weights: Dict[str, float] = field(default_factory=lambda: {
-        "contact": 25.0,      # Email, Telefon, Website
-        "location": 20.0,     # Distanz
-        "branch": 20.0,       # Branchen-Relevanz
-        "completeness": 15.0, # Datenvollständigkeit
-        "freshness": 10.0,    # Aktualität
-        "size": 10.0          # Unternehmensgröße
-    })
+    weights: dict[str, float] = field(
+        default_factory=lambda: {
+            "contact": 25.0,  # Email, Telefon, Website
+            "location": 20.0,  # Distanz
+            "branch": 20.0,  # Branchen-Relevanz
+            "completeness": 15.0,  # Datenvollständigkeit
+            "freshness": 10.0,  # Aktualität
+            "size": 10.0,  # Unternehmensgröße
+        }
+    )
 
     # Grade-Schwellenwerte
-    grade_thresholds: Dict[str, float] = field(default_factory=lambda: {
-        "A": 80.0,  # >= 80%
-        "B": 60.0,   # >= 60%
-        "C": 40.0,   # >= 40%
-        "D": 20.0    # >= 20%
-        # F: < 20%
-    })
+    grade_thresholds: dict[str, float] = field(
+        default_factory=lambda: {
+            "A": 80.0,  # >= 80%
+            "B": 60.0,  # >= 60%
+            "C": 40.0,  # >= 40%
+            "D": 20.0,  # >= 20%
+            # F: < 20%
+        }
+    )
 
     # Prioritäts-Schwellenwerte
-    priority_thresholds: Dict[str, Dict[str, float]] = field(default_factory=lambda: {
-        "HIGH": {"score": 70.0, "contact": 15.0},
-        "MEDIUM": {"score": 50.0, "contact": 10.0}
-        # LOW: alles andere
-    })
+    priority_thresholds: dict[str, dict[str, float]] = field(
+        default_factory=lambda: {
+            "HIGH": {"score": 70.0, "contact": 15.0},
+            "MEDIUM": {"score": 50.0, "contact": 10.0},
+            # LOW: alles andere
+        }
+    )
 
     @classmethod
     def from_env(cls) -> "ScoringConfig":
@@ -148,12 +161,13 @@ class ScoringConfig:
 @dataclass
 class APIConfig:
     """API Server Konfiguration"""
+
     host: str = "0.0.0.0"
     port: int = 8000
     debug: bool = False
     api_key_header: str = "X-API-Key"
-    api_keys: List[str] = field(default_factory=list)
-    cors_origins: List[str] = field(default_factory=lambda: ["*"])
+    api_keys: list[str] = field(default_factory=list)
+    cors_origins: list[str] = field(default_factory=lambda: ["*"])
 
     @classmethod
     def from_env(cls) -> "APIConfig":
@@ -174,7 +188,7 @@ class APIConfig:
             debug=os.getenv("API_DEBUG", "false").lower() == "true",
             api_key_header=os.getenv("API_KEY_HEADER", "X-API-Key"),
             api_keys=api_keys,
-            cors_origins=cors_origins
+            cors_origins=cors_origins,
         )
 
 
@@ -185,6 +199,7 @@ class Settings:
 
     Vereinigt alle Sub-Konfigurationen und stellt Factory-Methoden bereit.
     """
+
     # Sub-Konfigurationen
     ollama: OllamaConfig = field(default_factory=OllamaConfig)
     cache: CacheConfig = field(default_factory=CacheConfig)
@@ -218,13 +233,13 @@ class Settings:
             data_dir=Path(os.getenv("DATA_DIR", str(project_root / "data"))),
             output_dir=Path(os.getenv("OUTPUT_DIR", str(project_root / "output"))),
             default_plz=os.getenv("DEFAULT_PLZ", "2351"),
-            default_radius_km=float(os.getenv("DEFAULT_RADIUS", "20.0"))
+            default_radius_km=float(os.getenv("DEFAULT_RADIUS", "20.0")),
         )
 
     @classmethod
     def from_file(cls, path: Path) -> "Settings":
         """Lädt Konfiguration aus JSON-Datei"""
-        with open(path, "r") as f:
+        with open(path) as f:
             data = json.load(f)
 
         # Scoring Config braucht Sonderbehandlung wegen weights dict
@@ -232,8 +247,12 @@ class Settings:
         scoring_config = ScoringConfig()
         if scoring_data:
             scoring_config.weights = scoring_data.get("weights", scoring_config.weights)
-            scoring_config.grade_thresholds = scoring_data.get("grade_thresholds", scoring_config.grade_thresholds)
-            scoring_config.priority_thresholds = scoring_data.get("priority_thresholds", scoring_config.priority_thresholds)
+            scoring_config.grade_thresholds = scoring_data.get(
+                "grade_thresholds", scoring_config.grade_thresholds
+            )
+            scoring_config.priority_thresholds = scoring_data.get(
+                "priority_thresholds", scoring_config.priority_thresholds
+            )
 
         return cls(
             ollama=OllamaConfig(**data.get("ollama", {})),
@@ -246,7 +265,7 @@ class Settings:
             data_dir=Path(data.get("data_dir", "data")),
             output_dir=Path(data.get("output_dir", "output")),
             default_plz=data.get("default_plz", "2351"),
-            default_radius_km=data.get("default_radius_km", 20.0)
+            default_radius_km=data.get("default_radius_km", 20.0),
         )
 
     def to_file(self, path: Path) -> None:
@@ -258,43 +277,43 @@ class Settings:
                 "embedding_model": self.ollama.embedding_model,
                 "timeout": self.ollama.timeout,
                 "max_retries": self.ollama.max_retries,
-                "retry_delay": self.ollama.retry_delay
+                "retry_delay": self.ollama.retry_delay,
             },
             "cache": {
                 "db_path": str(self.cache.db_path),
                 "ttl_days": self.cache.ttl_days,
                 "max_entries": self.cache.max_entries,
-                "cleanup_interval_hours": self.cache.cleanup_interval_hours
+                "cleanup_interval_hours": self.cache.cleanup_interval_hours,
             },
             "plz": {
                 "db_path": str(self.plz.db_path),
                 "default_radius_km": self.plz.default_radius_km,
-                "max_radius_km": self.plz.max_radius_km
+                "max_radius_km": self.plz.max_radius_km,
             },
             "crawler": {
                 "user_agent": self.crawler.user_agent,
                 "rate_limit": self.crawler.rate_limit,
                 "concurrent_requests": self.crawler.concurrent_requests,
                 "timeout": self.crawler.timeout,
-                "respect_robots_txt": self.crawler.respect_robots_txt
+                "respect_robots_txt": self.crawler.respect_robots_txt,
             },
             "scoring": {
                 "weights": self.scoring.weights,
                 "grade_thresholds": self.scoring.grade_thresholds,
-                "priority_thresholds": self.scoring.priority_thresholds
+                "priority_thresholds": self.scoring.priority_thresholds,
             },
             "api": {
                 "host": self.api.host,
                 "port": self.api.port,
                 "debug": self.api.debug,
                 "api_key_header": self.api.api_key_header,
-                "cors_origins": self.api.cors_origins
+                "cors_origins": self.api.cors_origins,
             },
             "project_root": str(self.project_root),
             "data_dir": str(self.data_dir),
             "output_dir": str(self.output_dir),
             "default_plz": self.default_plz,
-            "default_radius_km": self.default_radius_km
+            "default_radius_km": self.default_radius_km,
         }
 
         with open(path, "w") as f:
@@ -314,7 +333,7 @@ class Settings:
 
 
 # Global Settings Instance (Lazy)
-_settings: Optional[Settings] = None
+_settings: Settings | None = None
 
 
 def get_settings() -> Settings:

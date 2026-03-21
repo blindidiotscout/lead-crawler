@@ -3,21 +3,18 @@ API Dependencies
 Dependency Injection für FastAPI Endpoints
 """
 
-from typing import Optional, Generator
 from functools import lru_cache
 
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 
-from lead_crawler.config import get_settings, Settings
+from lead_crawler.config import Settings, get_settings
+from lead_crawler.pipelines import ExportPipeline, LeadAnalysisPipeline
 from lead_crawler.services.cache import SQLiteCache, get_cache
-from lead_crawler.services.llm_client import LLMClient, OllamaClient, MockLLMClient, get_llm_client
-from lead_crawler.services.website_extractor import WebsiteExtractor, get_website_extractor
+from lead_crawler.services.llm_client import LLMClient, get_llm_client
 from lead_crawler.services.plz_service import PLZService, get_plz_service
-from lead_crawler.crawlers import CrawlerFactory
-from lead_crawler.pipelines import LeadAnalysisPipeline, ExportPipeline
-
+from lead_crawler.services.website_extractor import WebsiteExtractor, get_website_extractor
 
 # API Key Security
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -25,11 +22,12 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 class APIUser(BaseModel):
     """API User Info"""
+
     api_key: str
     is_admin: bool = False
 
 
-@lru_cache()
+@lru_cache
 def get_settings_cached() -> Settings:
     """Gibt gecachte Settings zurück"""
     return get_settings()
@@ -60,7 +58,7 @@ def get_analysis_pipeline(
     cache: SQLiteCache = Depends(get_cache_service),
     llm: LLMClient = Depends(get_llm_service),
     extractor: WebsiteExtractor = Depends(get_website_extractor_service),
-    plz: PLZService = Depends(get_plz_service_dep)
+    plz: PLZService = Depends(get_plz_service_dep),
 ) -> LeadAnalysisPipeline:
     """Gibt Analysis-Pipeline zurück (mit injected Services)"""
     pipeline = LeadAnalysisPipeline(settings=settings)
@@ -71,16 +69,14 @@ def get_analysis_pipeline(
     return pipeline
 
 
-def get_export_pipeline(
-    settings: Settings = Depends(get_settings_cached)
-) -> ExportPipeline:
+def get_export_pipeline(settings: Settings = Depends(get_settings_cached)) -> ExportPipeline:
     """Gibt Export-Pipeline zurück"""
     return ExportPipeline(settings=settings)
 
 
 async def verify_api_key(
-    api_key: Optional[str] = Security(api_key_header),
-    settings: Settings = Depends(get_settings_cached)
+    api_key: str | None = Security(api_key_header),
+    settings: Settings = Depends(get_settings_cached),
 ) -> APIUser:
     """
     Verifiziert API-Key
@@ -96,14 +92,11 @@ async def verify_api_key(
     if api_key is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API Key required. Provide X-API-Key header."
+            detail="API Key required. Provide X-API-Key header.",
         )
 
     if api_key not in settings.api.api_keys:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API Key"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API Key")
 
     # Admin-Key prüfen (erster Key in der Liste ist Admin)
     is_admin = api_key == settings.api.api_keys[0] if settings.api.api_keys else False
@@ -112,9 +105,9 @@ async def verify_api_key(
 
 
 async def get_optional_api_key(
-    api_key: Optional[str] = Security(api_key_header),
-    settings: Settings = Depends(get_settings_cached)
-) -> Optional[APIUser]:
+    api_key: str | None = Security(api_key_header),
+    settings: Settings = Depends(get_settings_cached),
+) -> APIUser | None:
     """
     Optionale API-Key Verifizierung
 
@@ -132,8 +125,10 @@ async def get_optional_api_key(
 
 # Pagination Dependencies
 
+
 class PaginationParams(BaseModel):
     """Pagination Parameter"""
+
     page: int = 1
     page_size: int = 50
 
@@ -146,33 +141,32 @@ class PaginationParams(BaseModel):
         return self.page_size
 
 
-def get_pagination(
-    page: int = 1,
-    page_size: int = 50
-) -> PaginationParams:
+def get_pagination(page: int = 1, page_size: int = 50) -> PaginationParams:
     """Extrahiert Pagination-Parameter"""
     return PaginationParams(page=max(1, page), page_size=min(500, max(1, page_size)))
 
 
 # Filter Dependencies
 
+
 class CompanyFilter(BaseModel):
     """Filter für Unternehmens-Suche"""
-    branche: Optional[str] = None
-    min_score: Optional[float] = None
-    max_score: Optional[float] = None
-    min_priority: Optional[str] = None
+
+    branche: str | None = None
+    min_score: float | None = None
+    max_score: float | None = None
+    min_priority: str | None = None
     include_analysis: bool = False
     include_score: bool = False
 
 
 def get_company_filter(
-    branche: Optional[str] = None,
-    min_score: Optional[float] = None,
-    max_score: Optional[float] = None,
-    min_priority: Optional[str] = None,
+    branche: str | None = None,
+    min_score: float | None = None,
+    max_score: float | None = None,
+    min_priority: str | None = None,
     include_analysis: bool = False,
-    include_score: bool = False
+    include_score: bool = False,
 ) -> CompanyFilter:
     """Extrahiert Filter-Parameter"""
     return CompanyFilter(
@@ -181,7 +175,7 @@ def get_company_filter(
         max_score=max_score,
         min_priority=min_priority,
         include_analysis=include_analysis,
-        include_score=include_score
+        include_score=include_score,
     )
 
 

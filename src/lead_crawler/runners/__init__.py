@@ -4,9 +4,9 @@ Einheitliche Runner für Crawler-Execution
 """
 
 from lead_crawler.runners.spider_runner import (
-    SpiderRunner,
     RunConfig,
     RunResult,
+    SpiderRunner,
     run_wko,
     run_wko_radius,
 )

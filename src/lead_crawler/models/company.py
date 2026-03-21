@@ -3,14 +3,15 @@ Company Domain Models
 Definiert die Kern-Datenstrukturen für Unternehmen
 """
 
-from dataclasses import dataclass, field, asdict
-from typing import Optional, Dict, List, Any
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 
 class CompanySource(Enum):
     """Datenquellen für Unternehmen"""
+
     WKO = "firmen.wko.at"
     ECOPLUS = "ecoplus.at"
     MANUAL = "manual"
@@ -20,25 +21,26 @@ class CompanySource(Enum):
 @dataclass
 class Address:
     """Adress-Datenmodell"""
-    street: Optional[str] = None
-    plz: Optional[str] = None  # Postleitzahl
-    ort: Optional[str] = None  # Ort/Stadt
-    bundesland: Optional[str] = None  # Bundesland
+
+    street: str | None = None
+    plz: str | None = None  # Postleitzahl
+    ort: str | None = None  # Ort/Stadt
+    bundesland: str | None = None  # Bundesland
     country: str = "Österreich"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Address":
+    def from_dict(cls, data: dict[str, Any]) -> "Address":
         """Erstellt Address aus Dictionary"""
         return cls(
             street=data.get("street") or data.get("strasse"),
             plz=data.get("plz"),
             ort=data.get("ort"),
             bundesland=data.get("bundesland"),
-            country=data.get("country", "Österreich")
+            country=data.get("country", "Österreich"),
         )
 
     def __str__(self) -> str:
@@ -58,23 +60,24 @@ class Address:
 @dataclass
 class ContactInfo:
     """Kontaktinformationen"""
-    telefon: Optional[str] = None
-    email: Optional[str] = None
-    website: Optional[str] = None
-    fax: Optional[str] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    telefon: str | None = None
+    email: str | None = None
+    website: str | None = None
+    fax: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ContactInfo":
+    def from_dict(cls, data: dict[str, Any]) -> "ContactInfo":
         """Erstellt ContactInfo aus Dictionary"""
         return cls(
             telefon=data.get("telefon") or data.get("phone"),
             email=data.get("email"),
             website=data.get("website") or data.get("url"),
-            fax=data.get("fax")
+            fax=data.get("fax"),
         )
 
     @property
@@ -103,21 +106,22 @@ class ContactInfo:
 @dataclass
 class CompanyMetadata:
     """Metadaten für ein Unternehmen"""
-    source: CompanySource = CompanySource.WKO
-    source_url: Optional[str] = None
-    crawled_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    last_updated: Optional[str] = None
-    crawl_version: str = "1.0"
-    raw_data: Optional[Dict[str, Any]] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    source: CompanySource = CompanySource.WKO
+    source_url: str | None = None
+    crawled_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    last_updated: str | None = None
+    crawl_version: str = "1.0"
+    raw_data: dict[str, Any] | None = None
+
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
         data = asdict(self)
         data["source"] = self.source.value
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CompanyMetadata":
+    def from_dict(cls, data: dict[str, Any]) -> "CompanyMetadata":
         """Erstellt Metadata aus Dictionary"""
         source_value = data.get("source", "firmen.wko.at")
         source = CompanySource(source_value) if isinstance(source_value, str) else source_value
@@ -128,7 +132,7 @@ class CompanyMetadata:
             crawled_at=data.get("crawled_at", datetime.now().isoformat()),
             last_updated=data.get("last_updated"),
             crawl_version=data.get("crawl_version", "1.0"),
-            raw_data=data.get("raw_data")
+            raw_data=data.get("raw_data"),
         )
 
 
@@ -140,11 +144,12 @@ class Company:
     Vereinheitlicht alle Unternehmensdaten aus verschiedenen Quellen
     und stellt einheitliche Schnittstellen bereit.
     """
+
     # Pflichtfelder
     name: str
 
     # Identifikation
-    id: Optional[str] = None  # Eindeutige ID (UUID oder Source-ID)
+    id: str | None = None  # Eindeutige ID (UUID oder Source-ID)
 
     # Adressdaten
     address: Address = field(default_factory=Address)
@@ -153,16 +158,16 @@ class Company:
     contact: ContactInfo = field(default_factory=ContactInfo)
 
     # Branchendaten
-    branche: Optional[str] = None  # WKO-Branchenbezeichnung
-    llm_analysis: Optional["LLMAnalysisResult"] = None  # LLM-Analyse (wird später definiert)
+    branche: str | None = None  # WKO-Branchenbezeichnung
+    llm_analysis: "LLMAnalysisResult | None" = None  # LLM-Analyse (wird später definiert)
 
     # Metadaten
     metadata: CompanyMetadata = field(default_factory=CompanyMetadata)
 
     # Scoring (wird später hinzugefügt)
-    score: Optional["LeadScore"] = None  # type: ignore
+    score: "LeadScore | None" = None  # type: ignore
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert Company zu Dictionary (für JSON/CSV Export)"""
         data = {
             "name": self.name,
@@ -194,7 +199,7 @@ class Company:
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Company":
+    def from_dict(cls, data: dict[str, Any]) -> "Company":
         """Erstellt Company aus Dictionary (z.B. von WKO Spider)"""
         # Address extrahieren
         address = Address.from_dict(data)
@@ -212,13 +217,14 @@ class Company:
             address=address,
             contact=contact,
             branche=data.get("branche"),
-            metadata=metadata
+            metadata=metadata,
         )
 
         # LLM Analysis falls vorhanden
         if data.get("llm_analysis"):
             # Wird später importiert um Circular Import zu vermeiden
             from lead_crawler.models.analysis import LLMAnalysisResult
+
             if isinstance(data["llm_analysis"], dict):
                 company.llm_analysis = LLMAnalysisResult.from_dict(data["llm_analysis"])
             else:
@@ -227,7 +233,7 @@ class Company:
         return company
 
     @classmethod
-    def from_wko_result(cls, data: Dict[str, Any]) -> "Company":
+    def from_wko_result(cls, data: dict[str, Any]) -> "Company":
         """
         Erstellt Company aus WKO Spider Ergebnis
 
@@ -256,5 +262,6 @@ def __post_import():
     """Nach Import: Verknüpft Forward References"""
     from lead_crawler.models.analysis import LLMAnalysisResult
     from lead_crawler.models.scoring import LeadScore
-    Company.__annotations__["llm_analysis"] = Optional[LLMAnalysisResult]
-    Company.__annotations__["score"] = Optional[LeadScore]
+
+    Company.__annotations__["llm_analysis"] = LLMAnalysisResult | None
+    Company.__annotations__["score"] = LeadScore | None

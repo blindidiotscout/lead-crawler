@@ -5,6 +5,7 @@ Testet echte WKO-Requests (wenn verfügbar)
 
 import sys
 from pathlib import Path
+
 import pytest
 
 # Add src directory to path for imports
@@ -28,7 +29,7 @@ class TestWKOCrawlerIntegration:
     def test_crawler_real_request(self):
         """Echter WKO-Request (nur mit @pytest.mark.integration)"""
         # Dieser Test wird nur ausgeführt wenn -m "integration" angegeben wird
-        crawler = WKOCrawler()
+        WKOCrawler()
         pass
 
 

@@ -3,14 +3,15 @@ Analysis Domain Models
 Definiert LLM-Analyse-Ergebnisse und Cache-Strukturen
 """
 
-from dataclasses import dataclass, field, asdict
-from typing import Optional, Dict, List, Any
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 
 class TargetMarket(Enum):
     """Zielmarkt-Klassifikation"""
+
     B2B = "B2B"
     B2C = "B2C"
     B2B_B2C = "B2B/B2C"
@@ -19,6 +20,7 @@ class TargetMarket(Enum):
 
 class CompanySize(Enum):
     """Unternehmensgröße (Schätzung)"""
+
     MICRO = "Micro (<10 MA)"
     SMALL = "Small (10-49 MA)"
     MEDIUM = "Medium (50-249 MA)"
@@ -33,14 +35,17 @@ class BranchAnalysis:
 
     Enthält alle extrahierten Informationen aus Website-Analyse
     """
+
     # Hauptbranche
     branch: str  # z.B. "Industrie/Fertigung"
 
     # Unterbranchen / Spezialisierungen
-    sub_branches: List[str] = field(default_factory=list)  # z.B. ["Aromenherstellung", "Getränkeindustrie"]
+    sub_branches: list[str] = field(
+        default_factory=list
+    )  # z.B. ["Aromenherstellung", "Getränkeindustrie"]
 
     # Dienstleistungen / Services
-    services: List[str] = field(default_factory=list)  # z.B. ["Produktion", "Beratung"]
+    services: list[str] = field(default_factory=list)  # z.B. ["Produktion", "Beratung"]
 
     # Zielmarkt
     target_market: str = "Unknown"  # B2B, B2C, B2B/B2C
@@ -49,7 +54,7 @@ class BranchAnalysis:
     company_size_hint: str = "Unknown"  # Micro, Small, Medium, Large
 
     # Keywords für Suche
-    keywords: List[str] = field(default_factory=list)
+    keywords: list[str] = field(default_factory=list)
 
     # Confidence-Score (0.0 - 1.0)
     confidence: float = 0.0
@@ -61,13 +66,13 @@ class BranchAnalysis:
     analyzed_at: str = field(default_factory=lambda: datetime.now().isoformat())
     model: str = ""  # Verwendetes LLM-Modell
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
         data = asdict(self)
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "BranchAnalysis":
+    def from_dict(cls, data: dict[str, Any]) -> "BranchAnalysis":
         """Erstellt BranchAnalysis aus Dictionary"""
         return cls(
             branch=data.get("branch", "Unknown"),
@@ -79,7 +84,7 @@ class BranchAnalysis:
             confidence=data.get("confidence", 0.0),
             reasoning=data.get("reasoning", ""),
             analyzed_at=data.get("analyzed_at", datetime.now().isoformat()),
-            model=data.get("model", "")
+            model=data.get("model", ""),
         )
 
     @property
@@ -118,8 +123,9 @@ class LLMAnalysisResult:
     Kapselt BranchAnalysis und zusätzliche Metadaten wie
     Cache-Status, Timing, etc.
     """
+
     # Analysedaten
-    analysis: Optional[BranchAnalysis] = None
+    analysis: BranchAnalysis | None = None
 
     # Website-Informationen
     website_url: str = ""
@@ -128,7 +134,7 @@ class LLMAnalysisResult:
 
     # Cache-Status
     cached: bool = False
-    cached_at: Optional[str] = None
+    cached_at: str | None = None
 
     # Timing
     crawl_time: float = 0.0  # Sekunden
@@ -136,12 +142,12 @@ class LLMAnalysisResult:
     total_time: float = 0.0  # Sekunden
 
     # Fehlerbehandlung
-    error: Optional[str] = None
+    error: str | None = None
 
     # Unternehmensname (für Reference)
     company_name: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
         data = {
             "company_name": self.company_name,
@@ -162,7 +168,7 @@ class LLMAnalysisResult:
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "LLMAnalysisResult":
+    def from_dict(cls, data: dict[str, Any]) -> "LLMAnalysisResult":
         """Erstellt LLMAnalysisResult aus Dictionary"""
         # BranchAnalysis extrahieren falls vorhanden
         analysis = None
@@ -187,11 +193,11 @@ class LLMAnalysisResult:
             analyze_time=data.get("analyze_time", 0.0),
             total_time=data.get("total_time", 0.0),
             error=data.get("error"),
-            company_name=data.get("company_name", "")
+            company_name=data.get("company_name", ""),
         )
 
     @classmethod
-    def from_pipeline_result(cls, result: Dict[str, Any]) -> "LLMAnalysisResult":
+    def from_pipeline_result(cls, result: dict[str, Any]) -> "LLMAnalysisResult":
         """
         Erstellt LLMAnalysisResult aus Pipeline-Ergebnis
 
@@ -206,14 +212,22 @@ class LLMAnalysisResult:
         return cls(
             company_name=result.get("company_name", ""),
             website_url=result.get("url", ""),
-            website_word_count=result.get("website_content", {}).get("word_count", 0) if result.get("website_content") else 0,
-            website_title=result.get("website_content", {}).get("title", "") if result.get("website_content") else "",
+            website_word_count=(
+                result.get("website_content", {}).get("word_count", 0)
+                if result.get("website_content")
+                else 0
+            ),
+            website_title=(
+                result.get("website_content", {}).get("title", "")
+                if result.get("website_content")
+                else ""
+            ),
             analysis=BranchAnalysis.from_dict(analysis_dict) if analysis_dict else None,
             cached=result.get("cached", False),
             crawl_time=result.get("crawl_time", 0.0),
             analyze_time=result.get("analyze_time", 0.0),
             total_time=result.get("total_time", 0.0),
-            error=result.get("error")
+            error=result.get("error"),
         )
 
     @property
@@ -244,24 +258,25 @@ class CacheEntry:
 
     Wird in der SQLite-Datenbank gespeichert
     """
+
     url: str  # Primary Key
     company_name: str
     analysis: BranchAnalysis
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    expires_at: Optional[str] = None  # TTL-basiert
+    expires_at: str | None = None  # TTL-basiert
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konvertiert zu Dictionary"""
         return {
             "url": self.url,
             "company_name": self.company_name,
             "analysis": self.analysis.to_dict(),
             "created_at": self.created_at,
-            "expires_at": self.expires_at
+            "expires_at": self.expires_at,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CacheEntry":
+    def from_dict(cls, data: dict[str, Any]) -> "CacheEntry":
         """Erstellt CacheEntry aus Dictionary"""
         analysis = BranchAnalysis.from_dict(data.get("analysis", {}))
         return cls(
@@ -269,7 +284,7 @@ class CacheEntry:
             company_name=data.get("company_name", ""),
             analysis=analysis,
             created_at=data.get("created_at", datetime.now().isoformat()),
-            expires_at=data.get("expires_at")
+            expires_at=data.get("expires_at"),
         )
 
     def is_expired(self, ttl_days: int = 30) -> bool:

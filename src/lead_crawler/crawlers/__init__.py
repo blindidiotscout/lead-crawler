@@ -5,11 +5,10 @@ Spider und Crawler für verschiedene Datenquellen
 
 from lead_crawler.crawlers.base import (
     BaseCrawler,
+    CrawlerFactory,
     CrawlerResult,
     CrawlerStatus,
-    CrawlerFactory,
 )
-
 from lead_crawler.crawlers.wko import (
     WKOCrawler,
     crawl_wko,

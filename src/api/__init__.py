@@ -5,17 +5,17 @@ FastAPI Backend für n8n Integration und externe Clients
 
 from api.main import app
 from api.schemas import (
-    # Request Models
-    SearchRequest,
     AnalyzeRequest,
-    ExportRequest,
+    AnalyzeResponse,
     CompanyCreateRequest,
     # Response Models
     CompanyResponse,
-    SearchResponse,
-    AnalyzeResponse,
-    ExportResponse,
     ErrorResponse,
+    ExportRequest,
+    ExportResponse,
+    # Request Models
+    SearchRequest,
+    SearchResponse,
 )
 
 __all__ = [

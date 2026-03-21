@@ -5,8 +5,9 @@ Testet echte Ollama-Requests (wenn verfügbar)
 
 import sys
 from pathlib import Path
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 
 # Add src directory to path for imports
 src_path = Path(__file__).parent.parent.parent / "src"
@@ -30,7 +31,7 @@ class TestMockLLMClient:
         response = client.generate("Test prompt")
 
         assert response is not None
-        assert hasattr(response, 'content')
+        assert hasattr(response, "content")
         assert len(response.content) > 0
 
     def test_mock_client_analyze_branch(self):
@@ -39,9 +40,9 @@ class TestMockLLMClient:
         result = client.analyze_branch("Test Firma", "Test Website Content")
 
         assert result is not None
-        assert hasattr(result, 'branch')
-        assert hasattr(result, 'confidence')
-        assert hasattr(result, 'services')
+        assert hasattr(result, "branch")
+        assert hasattr(result, "confidence")
+        assert hasattr(result, "services")
 
     def test_mock_client_is_available(self):
         """MockLLMClient is_available()"""
@@ -61,14 +62,11 @@ class TestOllamaClientUnit:
         """OllamaClient mit Settings"""
         from lead_crawler.config import OllamaConfig
 
-        config = OllamaConfig(
-            url="http://localhost:11434",
-            model="test-model"
-        )
+        config = OllamaConfig(url="http://localhost:11434", model="test-model")
         client = OllamaClient(config=config)
         assert client is not None
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_ollama_client_generate_mocked(self, mock_post):
         """OllamaClient generate() mit gemocktem Request"""
         # Mock Response
@@ -82,7 +80,7 @@ class TestOllamaClientUnit:
 
         assert response is not None
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_ollama_client_is_available_mocked(self, mock_get):
         """OllamaClient is_available() mit gemocktem Request"""
         # Mock Response
@@ -128,7 +126,7 @@ class TestOllamaClientIntegration:
             # Test-Content analysieren
             result = client.analyze_branch(
                 "Test Firma GmbH",
-                "Test Firma GmbH - IT Dienstleistungen, Web Development, Mobile Apps"
+                "Test Firma GmbH - IT Dienstleistungen, Web Development, Mobile Apps",
             )
 
             assert result is not None
@@ -143,9 +141,9 @@ class TestLLMClientProtocol:
     def test_mock_client_methods(self):
         """MockLLMClient hat alle required Methods"""
         mock_client = MockLLMClient()
-        assert hasattr(mock_client, 'generate')
-        assert hasattr(mock_client, 'analyze_branch')
-        assert hasattr(mock_client, 'is_available')
+        assert hasattr(mock_client, "generate")
+        assert hasattr(mock_client, "analyze_branch")
+        assert hasattr(mock_client, "is_available")
         assert callable(mock_client.generate)
         assert callable(mock_client.analyze_branch)
         assert callable(mock_client.is_available)
@@ -153,9 +151,9 @@ class TestLLMClientProtocol:
     def test_ollama_client_methods(self):
         """OllamaClient hat alle required Methods"""
         ollama_client = OllamaClient()
-        assert hasattr(ollama_client, 'generate')
-        assert hasattr(ollama_client, 'analyze_branch')
-        assert hasattr(ollama_client, 'is_available')
+        assert hasattr(ollama_client, "generate")
+        assert hasattr(ollama_client, "analyze_branch")
+        assert hasattr(ollama_client, "is_available")
 
 
 if __name__ == "__main__":
