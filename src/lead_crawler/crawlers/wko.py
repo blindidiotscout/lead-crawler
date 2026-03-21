@@ -218,21 +218,12 @@ class WKOCrawler(BaseCrawler):
         companies = []
 
         try:
-            # Spider-Import dynamisch
-            import sys
-            from pathlib import Path
-
-            # Pfad zum legacy scraper Modul
-            scraper_path = Path(__file__).parent.parent.parent.parent / "src"
-            if str(scraper_path) not in sys.path:
-                sys.path.insert(0, str(scraper_path))
-
-            # Legacy Spider Klasse importieren
-            from scraper import WkoSpider
+            # Spider aus eigenem Modul importieren
+            from lead_crawler.crawlers.spider import WkoSpider
 
             # Crawler Process
             process = CrawlerProcess(settings)
-            process.crawl(WkoSpider, _urls=urls)
+            process.crawl(WkoSpider, urls=urls)
             process.start()
 
             # Ergebnisse laden
@@ -246,6 +237,9 @@ class WKOCrawler(BaseCrawler):
                             self._track_success()
 
         except Exception as e:
+            self.logger.error(f"Scrapy error details: {type(e).__name__}: {e}")
+            import traceback
+            self.logger.debug(traceback.format_exc())
             self._track_error(f"Scrapy failed: {e}")
 
         finally:

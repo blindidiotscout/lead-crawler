@@ -353,6 +353,18 @@ class PLZService:
         result = self.find_in_radius(center_plz, radius_km)
         return result.plzs
 
+    def get_plz(self, plz: str) -> PLZCoordinate | None:
+        """
+        Ruft PLZ-Koordinaten ab (Proxy für DB-Methode)
+
+        Args:
+            plz: 4-stellige PLZ
+
+        Returns:
+            PLZCoordinate oder None
+        """
+        return self.db.get_plz(plz)
+
     def get_plz_info(self, plz: str) -> PLZInfo | None:
         """
         Gibt alle Informationen zu einer PLZ zurück

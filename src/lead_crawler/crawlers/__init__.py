@@ -9,6 +9,7 @@ from lead_crawler.crawlers.base import (
     CrawlerResult,
     CrawlerStatus,
 )
+from lead_crawler.crawlers.spider import WkoSpider
 from lead_crawler.crawlers.wko import (
     WKOCrawler,
     crawl_wko,
@@ -23,6 +24,8 @@ __all__ = [
     "CrawlerResult",
     "CrawlerStatus",
     "CrawlerFactory",
+    # Spider
+    "WkoSpider",
     # WKO
     "WKOCrawler",
     "crawl_wko",

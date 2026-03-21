@@ -31,6 +31,7 @@ requires-python = ">=3.11"
 dependencies = [
     # Core
     "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
     "python-dotenv>=1.0.0",
     
     # Crawling
@@ -39,8 +40,8 @@ dependencies = [
     "lxml>=5.0.0",
     "requests>=2.31.0",
     
-    # Database
-    "supabase>=2.0.0",
+    # Database (optional - requires gcc for pyiceberg)
+    # "supabase>=2.0.0",
     
     # LLM
     "ollama>=0.1.0",
