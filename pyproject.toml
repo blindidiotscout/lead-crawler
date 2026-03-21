@@ -104,6 +104,10 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["F401", "F811", "E402", "I001", "N806"]
 "src/lead_crawler/models/company.py" = ["F821"]  # Forward references
+"src/web/Home.py" = ["N999", "I001", "W292", "W293"]  # Streamlit requires Home.py
+"src/web/pages/*.py" = ["N999", "W292", "W293"]  # Streamlit convention
+"src/web/components/*.py" = ["W291", "W292", "W293"]  # HTML in strings
+"src/web/app_legacy.py" = ["F401", "E402", "I001", "W291", "W292", "W293"]  # Legacy code
 
 [tool.black]
 line-length = 100

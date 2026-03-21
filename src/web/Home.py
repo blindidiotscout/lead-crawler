@@ -3,8 +3,8 @@ Lead Crawler - Streamlit Web Frontend
 Multi-Page App für Lead-Generierung und Analyse
 """
 
+
 import streamlit as st
-from pathlib import Path
 
 # Page config (must be first Streamlit command)
 st.set_page_config(
@@ -61,7 +61,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("**Made with ❤️ in Austria**")
     st.markdown("*WKO-Daten | LLM: Ollama*")
-    
+
     # Quick Stats
     if st.session_state.search_results:
         st.markdown("---")
@@ -115,9 +115,9 @@ st.markdown("---")
 if st.session_state.search_results:
     st.subheader("📈 Letzte Suche")
     results = st.session_state.search_results
-    
+
     metrics_col1, metrics_col2, metrics_col3, metrics_col4 = st.columns(4)
-    
+
     with metrics_col1:
         st.metric("Gefunden", len(results))
     with metrics_col2:

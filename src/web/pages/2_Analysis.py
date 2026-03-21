@@ -3,8 +3,9 @@ Analysis Page - Statistiken und Analyse
 Visualisierung der Suchergebnisse
 """
 
-import streamlit as st
 from datetime import datetime
+
+import streamlit as st
 
 # Page config
 st.set_page_config(
@@ -62,7 +63,7 @@ if branches:
         for k, v in sorted(branches.items(), key=lambda x: x[1], reverse=True)
     ])
     st.bar_chart(branch_df.set_index('Branche'))
-    
+
     # Top Branchen
     st.markdown("**Top 5 Branchen:**")
     top_branches = sorted(branches.items(), key=lambda x: x[1], reverse=True)[:5]
@@ -86,7 +87,7 @@ if any('score_total' in r for r in results):
             for k, v in sorted(scores.items())
         ])
         st.bar_chart(score_df.set_index('Grade'))
-        
+
         # Score-Kategorien
         st.markdown("**Score-Kategorien:**")
         st.write("- 🟢 **A (80-100)**: High-Value Leads")
@@ -141,16 +142,16 @@ export_col1, export_col2 = st.columns(2)
 
 with export_col1:
     if st.button("📊 Branchen-Statistik als CSV"):
-        import io
         import csv
-        
+        import io
+
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(['Branche', 'Anzahl', 'Prozent'])
         total = sum(branches.values())
         for branch, count in sorted(branches.items(), key=lambda x: x[1], reverse=True):
             writer.writerow([branch, count, f"{count/total*100:.1f}%"])
-        
+
         st.download_button(
             label="⬇️ CSV herunterladen",
             data=output.getvalue(),
@@ -171,7 +172,7 @@ with export_col2:
 """
         for branch, count in top_branches:
             summary += f"- {branch}: {count}\n"
-        
+
         st.download_button(
             label="⬇️ Text herunterladen",
             data=summary,

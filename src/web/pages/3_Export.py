@@ -3,13 +3,13 @@ Export Page - Daten exportieren
 Export in verschiedene Formate
 """
 
-import streamlit as st
-from datetime import datetime
-import json
 import csv
 import io
+from datetime import datetime
 
-from lead_crawler.pipelines import ExportPipeline, ExportConfig
+import streamlit as st
+
+from lead_crawler.pipelines import ExportConfig, ExportPipeline
 
 # Page config
 st.set_page_config(
@@ -40,7 +40,7 @@ with export_col1:
         "Dateiformat",
         ["CSV", "JSON", "JSONL", "Excel (xlsx)"]
     )
-    
+
 with export_col2:
     include_llm = st.checkbox("LLM-Analyse inkludieren", value=True)
     include_score = st.checkbox("Scoring inkludieren", value=True)
@@ -69,7 +69,7 @@ filter_col1, filter_col2 = st.columns(2)
 
 with filter_col1:
     min_score = st.slider("Mindest-Score", 0, 100, 0)
-    
+
 with filter_col2:
     priority_filter = st.multiselect(
         "Priorität",
@@ -95,9 +95,9 @@ if filtered_results:
     for r in filtered_results[:10]:  # Nur erste 10 für Vorschau
         row = {k: r.get(k, 'N/A') for k in selected_fields[:5]}  # Nur erste 5 Felder
         preview_data.append(row)
-    
+
     st.dataframe(preview_data, use_container_width=True, hide_index=True)
-    
+
     if len(filtered_results) > 10:
         st.info(f"... und {len(filtered_results) - 10} weitere")
 
@@ -113,7 +113,7 @@ if st.button("🚀 Export starten", type="primary"):
                 fields=selected_fields if selected_fields else None,
                 min_score=min_score
             )
-            
+
             # In Export Pipeline umwandeln
             from lead_crawler.models import Company
             companies = []
@@ -125,19 +125,19 @@ if st.button("🚀 Export starten", type="primary"):
                 if r.get('ort'):
                     company.address.ort = r.get('ort')
                 companies.append(company)
-            
+
             # Export durchführen
             pipeline = ExportPipeline()
             result = pipeline.export(companies, config)
-            
+
             # Download
             if result.output_path:
                 st.success(f"✅ {result.exported_companies} Unternehmen exportiert!")
-                
+
                 # Datei lesen
                 with open(result.output_path, 'rb') as f:
                     file_data = f.read()
-                
+
                 filename = f"leads_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 if export_format == "CSV":
                     filename += ".csv"
@@ -151,7 +151,7 @@ if st.button("🚀 Export starten", type="primary"):
                 else:
                     filename += ".xlsx"
                     mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                
+
                 st.download_button(
                     label=f"⬇️ {export_format} herunterladen",
                     data=file_data,
@@ -160,7 +160,7 @@ if st.button("🚀 Export starten", type="primary"):
                 )
             else:
                 st.error("Export fehlgeschlagen: Keine Ausgabedatei")
-                
+
         except Exception as e:
             st.error(f"Export fehlgeschlagen: {str(e)}")
 
@@ -173,11 +173,11 @@ if st.button("📥 Direkt als CSV exportieren"):
         output = io.StringIO()
         writer = csv.DictWriter(output, fieldnames=selected_fields)
         writer.writeheader()
-        
+
         for r in filtered_results:
             row = {k: str(r.get(k, '')) for k in selected_fields}
             writer.writerow(row)
-        
+
         st.download_button(
             label="⬇️ CSV herunterladen",
             data=output.getvalue(),

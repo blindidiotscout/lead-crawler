@@ -3,11 +3,12 @@ UI Components for Streamlit Pages
 Wiederverwendbare UI-Elemente
 """
 
+from typing import Any
+
 import streamlit as st
-from typing import Dict, List, Any, Optional
 
 
-def render_lead_card(company: Dict[str, Any], show_details: bool = False) -> None:
+def render_lead_card(company: dict[str, Any], show_details: bool = False) -> None:
     """
     Rendert eine Lead-Card für ein Unternehmen.
     
@@ -23,21 +24,21 @@ def render_lead_card(company: Dict[str, Any], show_details: bool = False) -> Non
         <p>📍 {company.get('strasse', '')}, {company.get('plz', '')} {company.get('ort', '')}</p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     if show_details:
         col1, col2 = st.columns(2)
-        
+
         with col1:
             st.markdown("**📞 Kontakt**")
             st.write(f"Tel: {company.get('telefon', 'N/A')}")
             st.write(f"Email: {company.get('email', 'N/A')}")
             if company.get('website'):
                 st.markdown(f"**🌐 [Website]({company['website']})**")
-        
+
         with col2:
             st.markdown("**🏢 Branche**")
             st.write(company.get('branche', 'N/A'))
-            
+
             if company.get('llm_analysis'):
                 llm = company['llm_analysis']
                 st.markdown("**🤖 LLM-Analyse**")
@@ -68,7 +69,7 @@ def render_score_badge(score: float) -> str:
     else:
         color = "#f44336"  # Rot
         grade = "D"
-    
+
     return f"""
     <span style='background-color: {color}; color: white; 
                  padding: 0.25rem 0.5rem; border-radius: 4px; 
@@ -78,7 +79,7 @@ def render_score_badge(score: float) -> str:
     """
 
 
-def render_metrics_grid(metrics: Dict[str, Any], columns: int = 4) -> None:
+def render_metrics_grid(metrics: dict[str, Any], columns: int = 4) -> None:
     """
     Rendert ein Grid von Metriken.
     
@@ -87,17 +88,17 @@ def render_metrics_grid(metrics: Dict[str, Any], columns: int = 4) -> None:
         columns: Anzahl der Spalten
     """
     cols = st.columns(columns)
-    
+
     for idx, (label, value) in enumerate(metrics.items()):
         with cols[idx % columns]:
             st.metric(label, value)
 
 
 def render_filter_sidebar(
-    branches: List[str],
+    branches: list[str],
     show_score_filter: bool = True,
     show_website_filter: bool = True
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Rendert Filter in der Sidebar.
     
@@ -110,17 +111,17 @@ def render_filter_sidebar(
         Dict mit Filter-Werten
     """
     filters = {}
-    
+
     with st.sidebar:
         st.markdown("### 🔍 Filter")
-        
+
         if branches:
             filters['branches'] = st.multiselect(
                 "Branche",
                 branches,
                 default=[]
             )
-        
+
         if show_score_filter:
             filters['min_score'] = st.slider(
                 "Min. Score",
@@ -128,17 +129,17 @@ def render_filter_sidebar(
                 max_value=100,
                 value=0
             )
-        
+
         if show_website_filter:
             filters['has_website'] = st.checkbox(
                 "Nur mit Website",
                 value=False
             )
-    
+
     return filters
 
 
-def render_export_buttons(data: List[Dict], filename_prefix: str = "export") -> None:
+def render_export_buttons(data: list[dict], filename_prefix: str = "export") -> None:
     """
     Rendert Export-Buttons für CSV und JSON.
     
@@ -146,13 +147,13 @@ def render_export_buttons(data: List[Dict], filename_prefix: str = "export") -> 
         data: Zu exportierende Daten
         filename_prefix: Prefix für den Dateinamen
     """
-    from datetime import datetime
-    import json
     import csv
     import io
-    
+    import json
+    from datetime import datetime
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         if st.button("📥 CSV"):
             output = io.StringIO()
@@ -160,14 +161,14 @@ def render_export_buttons(data: List[Dict], filename_prefix: str = "export") -> 
                 writer = csv.DictWriter(output, fieldnames=data[0].keys())
                 writer.writeheader()
                 writer.writerows(data)
-                
+
                 st.download_button(
                     label="⬇️ CSV herunterladen",
                     data=output.getvalue(),
                     file_name=f"{filename_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv"
                 )
-    
+
     with col2:
         if st.button("📥 JSON"):
             json_str = json.dumps(data, indent=2, ensure_ascii=False)
@@ -195,9 +196,9 @@ def render_status_badge(status: str) -> str:
         "failed": "#f44336",
         "pending": "#9E9E9E"
     }
-    
+
     color = colors.get(status.lower(), "#9E9E9E")
-    
+
     return f"""
     <span style='background-color: {color}; color: white; 
                  padding: 0.25rem 0.5rem; border-radius: 4px; 
@@ -221,7 +222,7 @@ def render_progress_bar(current: int, total: int, label: str = "Fortschritt") ->
 
 
 def render_company_table(
-    companies: List[Dict],
+    companies: list[dict],
     show_score: bool = True,
     show_llm: bool = True,
     max_rows: int = 100
@@ -236,10 +237,10 @@ def render_company_table(
         max_rows: Maximale Anzahl anzuzeigender Zeilen
     """
     import pandas as pd
-    
+
     # Limitieren
     companies = companies[:max_rows]
-    
+
     # Tabelle aufbauen
     rows = []
     for c in companies:
@@ -248,15 +249,15 @@ def render_company_table(
             'Ort': f"{c.get('plz', '')} {c.get('ort', '')}",
             'Branche': c.get('branche', 'N/A')
         }
-        
+
         if show_score and 'score_total' in c:
             row['Score'] = f"{c['score_total']}/100"
-        
+
         if show_llm:
             row['LLM'] = '✅' if c.get('llm_analysis') else '❌'
-        
+
         rows.append(row)
-    
+
     if rows:
         df = pd.DataFrame(rows)
         st.dataframe(df, use_container_width=True, hide_index=True)

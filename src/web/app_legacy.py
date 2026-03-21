@@ -500,13 +500,13 @@ elif page == "⚙️ Einstellungen":
     
     with info_col1:
         st.markdown("**Projekt**")
-        st.write(f"Version: 1.0.0")
-        st.write(f"Datenquelle: WKO (wirtschaftskammer.at)")
-        st.write(f"LLM: Ollama (lokal)")
+        st.write("Version: 1.0.0")
+        st.write("Datenquelle: WKO (wirtschaftskammer.at)")
+        st.write("LLM: Ollama (lokal)")
     
     with info_col2:
         st.markdown("**Status**")
-        st.write(f"🟢 Crawler: Bereit")
+        st.write("🟢 Crawler: Bereit")
         st.write(f"🟢 LLM: {ollama_url}")
         st.write(f"🟢 Cache: Aktiv ({cache_ttl} Tage)")
 
