@@ -134,19 +134,25 @@ Refactoring des Lead-Crawlers für bessere Wartbarkeit, Testbarkeit und Erweiter
 
 ## ✅ Phase 5: Pipelines Organisieren
 
-**Priorität:** Niedrig | **Status:** ⚪ Pending
+**Priorität:** Niedrig | **Status:** ✅ Done
 
 ### Tasks
 
-- [ ] `src/lead_crawler/pipelines/__init__.py` erstellen
-- [ ] `src/lead_crawler/pipelines/lead_analysis.py`
-  - [ ] `LeadAnalysisPipeline` Klasse
-  - [ ] Orchestriert: Crawl → Extract → Analyze → Cache
-  - [ ] Progress Callbacks
-- [ ] `src/lead_crawler/pipelines/export.py`
-  - [ ] `ExportPipeline` für CSV/JSON
-  - [ ] Templates für verschiedene Export-Formate
-- [ ] Pipeline-Runner CLI in `cli/`
+- [x] `src/lead_crawler/pipelines/__init__.py` erstellen
+- [x] `src/lead_crawler/pipelines/lead_analysis.py`
+  - [x] `LeadAnalysisPipeline` Klasse
+  - [x] Orchestriert: Crawl → Extract → Analyze → Cache → Score
+  - [x] `PipelineResult` und `BatchResult` Dataclasses
+  - [x] Progress Callbacks für UI
+  - [x] Error Handling pro Schritt
+  - [x] `analyze()`, `analyze_batch()`, `analyze_from_crawler()` Methoden
+- [x] `src/lead_crawler/pipelines/export.py`
+  - [x] `ExportPipeline` für CSV/JSON/JSONL/Excel
+  - [x] `ExportConfig` und `ExportResult` Dataclasses
+  - [x] Filterung nach Score/Priority
+  - [x] Feld-Auswahl und Format-Optionen
+- [x] Convenience-Funktionen `run_analysis()`, `export_companies()`
+- [x] 22 Unit Tests für Pipelines
 
 ---
 
@@ -218,7 +224,7 @@ Refactoring des Lead-Crawlers für bessere Wartbarkeit, Testbarkeit und Erweiter
 | 2. Config | ✅ Done | 100% |
 | 3. Services | ✅ Done | 100% |
 | 4. Crawlers | ✅ Done | 100% |
-| 5. Pipelines | ⚪ Pending | 0% |
+| 5. Pipelines | ✅ Done | 100% |
 | 6. API | ⚪ Pending | 0% |
 | 7. Web | ⚪ Pending | 0% |
 | 8. Tests | ⚪ Pending | 0% |

@@ -63,6 +63,16 @@ from lead_crawler.runners import (
     run_wko_radius,
 )
 
+from lead_crawler.pipelines import (
+    LeadAnalysisPipeline,
+    PipelineResult,
+    PipelineStage,
+    run_analysis,
+    ExportPipeline,
+    ExportConfig,
+    export_companies,
+)
+
 __all__ = [
     # Models
     "Company",
@@ -112,4 +122,12 @@ __all__ = [
     "RunResult",
     "run_wko",
     "run_wko_radius",
+    # Pipelines
+    "LeadAnalysisPipeline",
+    "PipelineResult",
+    "PipelineStage",
+    "run_analysis",
+    "ExportPipeline",
+    "ExportConfig",
+    "export_companies",
 ]
