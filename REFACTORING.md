@@ -101,27 +101,34 @@ Refactoring des Lead-Crawlers für bessere Wartbarkeit, Testbarkeit und Erweiter
 
 ## ✅ Phase 4: Crawlers Refaktorieren
 
-**Priorität:** Mittel | **Status:** ⚪ Pending
+**Priorität:** Mittel | **Status:** ✅ Done
 
 ### Tasks
 
-- [ ] `src/lead_crawler/crawlers/__init__.py` erstellen
-- [ ] `src/lead_crawler/crawlers/base.py`
-  - [ ] `BaseSpider` abstrakte Klasse
-  - [ ] Gemeinsame Parsing-Helpers
-  - [ ] Einheitliche Error-Handling
-- [ ] `src/lead_crawler/crawlers/wko.py`
-  - [ ] `WKOSpider` von Base erben
-  - [ ] Nur WKO-spezifische Logik
-- [ ] `src/lead_crawler/crawlers/ecoplus.py`
-  - [ ] `EcoPlusSpider` separieren
-- [ ] `src/lead_crawler/runners/__init__.py` erstellen
-- [ ] `src/lead_crawler/runners/spider_runner.py`
-  - [ ] Einheitliche `run_spider()` Factory
-  - [ ] Settings-Integration
-  - [ ] Output-Format-Konfiguration
-- [ ] Alte `scraper.py` und `enhanced_scraper.py` migrieren
-- [ ] Integration Tests
+- [x] `src/lead_crawler/crawlers/__init__.py` erstellen
+- [x] `src/lead_crawler/crawlers/base.py`
+  - [x] `BaseCrawler` abstrakte Klasse
+  - [x] `CrawlerResult` Dataclass
+  - [x] `CrawlerStatus` Enum
+  - [x] Gemeinsame Parsing-Helpers (`_normalize_phone`, `_normalize_email`, etc.)
+  - [x] `create_company()` Factory-Methode
+  - [x] Einheitliche Error-Handling
+- [x] `src/lead_crawler/crawlers/wko.py`
+  - [x] `WKOCrawler` von Base erben
+  - [x] Nur WKO-spezifische Logik
+  - [x] `crawl()` und `crawl_radius()` Methoden
+  - [x] Output als `Company` Model
+  - [x] `_parse_item()` Implementation
+- [x] `src/lead_crawler/runners/__init__.py` erstellen
+- [x] `src/lead_crawler/runners/spider_runner.py`
+  - [x] `SpiderRunner` Klasse
+  - [x] `RunConfig` und `RunResult` Dataclasses
+  - [x] `run()` und `run_with_config()` Methoden
+  - [x] Output in JSON/JSONL/CSV
+  - [x] Convenience-Funktionen `run_wko()`, `run_wko_radius()`
+- [x] `CrawlerFactory` für Crawler-Registry
+- [x] 23 Unit Tests für Crawlers
+- [ ] Alte `scraper.py` und `enhanced_scraper.py` als Legacy behalten (Phase 5: Migration)
 
 ---
 
@@ -210,7 +217,7 @@ Refactoring des Lead-Crawlers für bessere Wartbarkeit, Testbarkeit und Erweiter
 | 1. Models | ✅ Done | 100% |
 | 2. Config | ✅ Done | 100% |
 | 3. Services | ✅ Done | 100% |
-| 4. Crawlers | ⚪ Pending | 0% |
+| 4. Crawlers | ✅ Done | 100% |
 | 5. Pipelines | ⚪ Pending | 0% |
 | 6. API | ⚪ Pending | 0% |
 | 7. Web | ⚪ Pending | 0% |

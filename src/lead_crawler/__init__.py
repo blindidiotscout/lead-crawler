@@ -10,6 +10,7 @@ from lead_crawler.models import (
     Address,
     ContactInfo,
     CompanyMetadata,
+    CompanySource,
     BranchAnalysis,
     LLMAnalysisResult,
     LeadScore,
@@ -30,12 +31,45 @@ from lead_crawler.config import (
     reset_settings,
 )
 
+from lead_crawler.services import (
+    SQLiteCache,
+    LLMClient,
+    OllamaClient,
+    MockLLMClient,
+    WebsiteExtractor,
+    WebsiteContent,
+    PLZService,
+    PLZDatabase,
+    get_cache,
+    get_llm_client,
+    get_website_extractor,
+    get_plz_service,
+)
+
+from lead_crawler.crawlers import (
+    BaseCrawler,
+    CrawlerResult,
+    CrawlerStatus,
+    CrawlerFactory,
+    WKOCrawler,
+    crawl_wko,
+)
+
+from lead_crawler.runners import (
+    SpiderRunner,
+    RunConfig,
+    RunResult,
+    run_wko,
+    run_wko_radius,
+)
+
 __all__ = [
     # Models
     "Company",
     "Address",
     "ContactInfo",
     "CompanyMetadata",
+    "CompanySource",
     "BranchAnalysis",
     "LLMAnalysisResult",
     "LeadScore",
@@ -52,4 +86,30 @@ __all__ = [
     "APIConfig",
     "get_settings",
     "reset_settings",
+    # Services
+    "SQLiteCache",
+    "LLMClient",
+    "OllamaClient",
+    "MockLLMClient",
+    "WebsiteExtractor",
+    "WebsiteContent",
+    "PLZService",
+    "PLZDatabase",
+    "get_cache",
+    "get_llm_client",
+    "get_website_extractor",
+    "get_plz_service",
+    # Crawlers
+    "BaseCrawler",
+    "CrawlerResult",
+    "CrawlerStatus",
+    "CrawlerFactory",
+    "WKOCrawler",
+    "crawl_wko",
+    # Runners
+    "SpiderRunner",
+    "RunConfig",
+    "RunResult",
+    "run_wko",
+    "run_wko_radius",
 ]
