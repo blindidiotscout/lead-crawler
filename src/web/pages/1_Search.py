@@ -178,14 +178,11 @@ if st.session_state.search_results:
     if filtered_results:
         display_data = []
         for r in filtered_results:
+            branche = r.get("branche") or "N/A"
             row = {
                 "Name": r.get("name", "N/A"),
                 "Ort": f"{r.get('plz', '')} {r.get('ort', '')}",
-                "Branche": (
-                    r.get("branche", "N/A")[:30] + "..."
-                    if len(r.get("branche", "")) > 30
-                    else r.get("branche", "N/A")
-                ),
+                "Branche": (branche[:30] + "..." if len(branche) > 30 else branche),
                 "Website": "✅" if r.get("website") else "❌",
                 "LLM": "✅" if r.get("llm_analysis") else "❌",
             }
