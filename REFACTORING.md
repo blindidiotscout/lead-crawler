@@ -158,25 +158,45 @@ Refactoring des Lead-Crawlers für bessere Wartbarkeit, Testbarkeit und Erweiter
 
 ## ✅ Phase 6: API Backend
 
-**Priorität:** Niedrig | **Status:** ⚪ Pending
+**Priorität:** Niedrig | **Status:** ✅ Done
 
 ### Tasks
 
-- [ ] `src/api/__init__.py` erstellen
-- [ ] `src/api/main.py` - FastAPI Entry Point
-- [ ] `src/api/routes/__init__.py`
-- [ ] `src/api/routes/search.py`
-  - [ ] `POST /search` - PLZ/Radius Suche
-  - [ ] `GET /search/{id}` - Suchergebnis abrufen
-- [ ] `src/api/routes/company.py`
-  - [ ] `GET /company/{id}` - Unternehmensdetails
-  - [ ] `GET /company/{id}/analysis` - LLM-Analyse
-- [ ] `src/api/routes/analyze.py`
-  - [ ] `POST /analyze` - Einzelne Website analysieren
-- [ ] `src/api/dependencies.py` - DI Container
-- [ ] API-Key Authentication
-- [ ] OpenAPI Docs
-- [ ] Docker Compose für API + Ollama
+- [x] `src/api/__init__.py` erstellen
+- [x] `src/api/main.py` - FastAPI Entry Point
+  - [x] Lifespan Context Manager
+  - [x] CORS Middleware
+  - [x] Health & Status Endpoints
+  - [x] Global Error Handler
+- [x] `src/api/schemas.py` - Pydantic Models
+  - [x] Request Models (Search, Analyze, Export)
+  - [x] Response Models (Company, PLZ, Job)
+  - [x] Enums (Source, Priority, Format)
+- [x] `src/api/dependencies.py` - DI Container
+  - [x] Service Dependencies
+  - [x] API Key Authentication
+  - [x] Pagination & Filter
+- [x] `src/api/routes/search.py`
+  - [x] `POST /search` - PLZ/Radius Suche
+  - [x] `GET /search/plz/{plz}` - PLZ-Informationen
+  - [x] `POST /search/radius` - PLZ-Radius-Suche
+  - [x] `POST /search/n8n` - n8n Workflow Integration
+- [x] `src/api/routes/company.py`
+  - [x] `GET /company/{id}` - Unternehmensdetails
+  - [x] `POST /company/analyze` - LLM-Analyse
+  - [x] `POST /company/analyze/n8n` - n8n Integration
+- [x] `src/api/routes/analyze.py`
+  - [x] `POST /analyze/batch` - Batch-Analyse
+  - [x] `GET /analyze/{job_id}` - Job-Status
+  - [x] `DELETE /analyze/{job_id}` - Job abbrechen
+- [x] `src/api/routes/export.py`
+  - [x] `POST /export` - Export starten
+  - [x] `GET /export/{id}` - Export-Status
+  - [x] `GET /export/{id}/download` - Download
+  - [x] `POST /export/n8n` - n8n Export mit Webhook
+- [x] OpenAPI Docs (`/docs`, `/redoc`)
+- [x] n8n-specific OpenAPI Schema (`/openapi-n8n.json`)
+- [x] 28 Unit Tests für API
 
 ---
 
@@ -225,7 +245,7 @@ Refactoring des Lead-Crawlers für bessere Wartbarkeit, Testbarkeit und Erweiter
 | 3. Services | ✅ Done | 100% |
 | 4. Crawlers | ✅ Done | 100% |
 | 5. Pipelines | ✅ Done | 100% |
-| 6. API | ⚪ Pending | 0% |
+| 6. API | ✅ Done | 100% |
 | 7. Web | ⚪ Pending | 0% |
 | 8. Tests | ⚪ Pending | 0% |
 
