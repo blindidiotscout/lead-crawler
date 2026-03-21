@@ -27,9 +27,15 @@ geopy>=2.4.0  # Für Distanzberechnung
 pandas>=2.1.0
 openpyxl>=3.1.0  # Excel-Support
 
+# Web UI
+streamlit>=1.30.0  # Frontend
+
 # Auth / Security
 python-jose[cryptography]>=3.3.0  # API-Key Handling
 passlib>=1.7.4
+
+# Configuration
+python-dotenv>=1.0.0  # Environment variables
 
 # Testing
 pytest>=7.4.0
