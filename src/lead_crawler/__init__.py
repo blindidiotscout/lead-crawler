@@ -18,6 +18,18 @@ from lead_crawler.models import (
     PLZCoordinate,
 )
 
+from lead_crawler.config import (
+    Settings,
+    OllamaConfig,
+    CacheConfig,
+    PLZConfig,
+    CrawlerConfig,
+    ScoringConfig,
+    APIConfig,
+    get_settings,
+    reset_settings,
+)
+
 __all__ = [
     # Models
     "Company",
@@ -30,4 +42,14 @@ __all__ = [
     "ScoreBreakdown",
     "PLZInfo",
     "PLZCoordinate",
+    # Config
+    "Settings",
+    "OllamaConfig",
+    "CacheConfig",
+    "PLZConfig",
+    "CrawlerConfig",
+    "ScoringConfig",
+    "APIConfig",
+    "get_settings",
+    "reset_settings",
 ]

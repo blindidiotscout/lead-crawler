@@ -49,20 +49,21 @@ Refactoring des Lead-Crawlers für bessere Wartbarkeit, Testbarkeit und Erweiter
 
 ## ✅ Phase 2: Config Zentralisieren
 
-**Priorität:** Hoch | **Status:** ⚪ Pending
+**Priorität:** Hoch | **Status:** ✅ Done
 
 ### Tasks
 
-- [ ] `config/settings.py` erstellen (dataclass-based)
-- [ ] Umgebungsvariablen-Loading mit `python-dotenv`
-- [ ] Alle hardcoded URLs/Pfade in Settings umwandeln
-  - [ ] `OLLAMA_URL` → `settings.ollama.url`
-  - [ ] `OLLAMA_MODEL` → `settings.ollama.model`
-  - [ ] Cache-Pfade → `settings.cache.db_path`
-  - [ ] PLZ-DB Pfad → `settings.plz.db_path`
-- [ ] `.env.example` erstellen
-- [ ] Settings in allen Services injecten
-- [ ] Dokumentation in README aktualisieren
+- [x] `config/settings.py` erstellen (dataclass-based) → `src/lead_crawler/config.py`
+- [x] Umgebungsvariablen-Loading mit `python-dotenv`
+- [x] Alle hardcoded URLs/Pfade in Settings umwandeln
+  - [x] `OLLAMA_URL` → `settings.ollama.url`
+  - [x] `OLLAMA_MODEL` → `settings.ollama.model`
+  - [x] Cache-Pfade → `settings.cache.db_path`
+  - [x] PLZ-DB Pfad → `settings.plz.db_path`
+- [x] `.env.example` erstellen
+- [x] Settings in allen Services injecten (via `get_settings()`)
+- [x] 19 Unit Tests für Config
+- [ ] Alte Module auf Settings umstellen (Phase 4)
 
 ---
 
@@ -203,7 +204,7 @@ Refactoring des Lead-Crawlers für bessere Wartbarkeit, Testbarkeit und Erweiter
 | Phase | Status | Progress |
 |-------|--------|----------|
 | 1. Models | ✅ Done | 100% |
-| 2. Config | 🔵 In Progress | 0% |
+| 2. Config | ✅ Done | 100% |
 | 3. Services | ⚪ Pending | 0% |
 | 4. Crawlers | ⚪ Pending | 0% |
 | 5. Pipelines | ⚪ Pending | 0% |

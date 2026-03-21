@@ -31,6 +31,9 @@ openpyxl>=3.1.0  # Excel-Support
 python-jose[cryptography]>=3.3.0  # API-Key Handling
 passlib>=1.7.4
 
+# Configuration
+python-dotenv>=1.0.0  # Environment variables
+
 # Testing
 pytest>=7.4.0
 pytest-asyncio>=0.23.0
