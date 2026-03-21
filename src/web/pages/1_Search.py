@@ -99,9 +99,7 @@ if st.button("🚀 Suche starten", disabled=search_disabled, type="primary"):
                     crawler = WKOCrawler()
 
                     # Immer crawler ausführen
-                    crawler_result = crawler.crawl_radius(
-                        center_plz=plz_input, radius_km=radius_km
-                    )
+                    crawler_result = crawler.crawl_radius(center_plz=plz_input, radius_km=radius_km)
 
                     if use_llm:
                         # Mit LLM-Analyse
