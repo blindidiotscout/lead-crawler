@@ -69,29 +69,33 @@ Refactoring des Lead-Crawlers für bessere Wartbarkeit, Testbarkeit und Erweiter
 
 ## ✅ Phase 3: Services Separieren
 
-**Priorität:** Mittel | **Status:** ⚪ Pending
+**Priorität:** Mittel | **Status:** ✅ Done
 
 ### Tasks
 
-- [ ] `src/lead_crawler/services/__init__.py` erstellen
-- [ ] `src/lead_crawler/services/cache.py`
-  - [ ] `CacheService` Interface definieren
-  - [ ] SQLite-Implementierung
-  - [ ] Methoden: `get()`, `set()`, `invalidate()`, `get_stats()`
-- [ ] `src/lead_crawler/services/llm_client.py`
-  - [ ] `LLMClient` Interface
-  - [ ] `OllamaClient` Implementierung
-  - [ ] `MockLLMClient` für Tests
-- [ ] `src/lead_crawler/services/website_extractor.py`
-  - [ ] `WebsiteExtractor` Klasse
-  - [ ] Extrahiert Titel, Meta, Haupttext, About, Services
-  - [ ] Rate-Limiting als Parameter
-- [ ] `src/lead_crawler/services/plz_service.py`
-  - [ ] `PLZService` Klasse extrahieren
-  - [ ] Radius-Berechnung
-  - [ ] Orte-Suche
-- [ ] Dependency Injection Pattern implementieren
-- [ ] Unit Tests für alle Services
+- [x] `src/lead_crawler/services/__init__.py` erstellen
+- [x] `src/lead_crawler/services/cache.py`
+  - [x] `CacheService` Protocol definieren
+  - [x] `SQLiteCache` Implementierung
+  - [x] Methoden: `get()`, `set()`, `delete()`, `exists()`, `clear()`, `get_stats()`
+  - [x] TTL-Support, URL-Normalisierung
+- [x] `src/lead_crawler/services/llm_client.py`
+  - [x] `LLMClient` ABC (abstrakte Basisklasse)
+  - [x] `OllamaClient` Implementierung mit Retry-Logic
+  - [x] `MockLLMClient` für Tests
+  - [x] `analyze_branch()` Methode für Branchen-Analyse
+- [x] `src/lead_crawler/services/website_extractor.py`
+  - [x] `WebsiteExtractor` Klasse
+  - [x] Extrahiert Titel, Meta, Haupttext, About, Services, Kontakt
+  - [x] Rate-Limiting, Robots.txt-Check
+  - [x] `WebsiteContent` Dataclass
+- [x] `src/lead_crawler/services/plz_service.py`
+  - [x] `PLZService` Klasse
+  - [x] `PLZDatabase` für SQLite-Speicherung
+  - [x] `HaversineCalculator` für Distanzberechnung
+  - [x] `find_in_radius()`, `validate_plz()`, etc.
+- [x] Singleton Pattern via `get_*()` Funktionen
+- [x] 36 Unit Tests für alle Services
 
 ---
 
@@ -205,7 +209,7 @@ Refactoring des Lead-Crawlers für bessere Wartbarkeit, Testbarkeit und Erweiter
 |-------|--------|----------|
 | 1. Models | ✅ Done | 100% |
 | 2. Config | ✅ Done | 100% |
-| 3. Services | ⚪ Pending | 0% |
+| 3. Services | ✅ Done | 100% |
 | 4. Crawlers | ⚪ Pending | 0% |
 | 5. Pipelines | ⚪ Pending | 0% |
 | 6. API | ⚪ Pending | 0% |
