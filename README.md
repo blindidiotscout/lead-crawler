@@ -1,5 +1,10 @@
 # Lead Crawler v2.0
 
+[![Tests](https://github.com/blindidiotscout/lead-crawler/actions/workflows/test.yml/badge.svg)](https://github.com/blindidiotscout/lead-crawler/actions/workflows/test.yml)
+[![Coverage](https://codecov.io/gh/blindidiotscout/lead-crawler/branch/main/graph/badge.svg)](https://codecov.io/gh/blindidiotscout/lead-crawler)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 **Automatisierte Lead-Generierung für KMU in Österreich**
 
 Eine moderne, modulare Anwendung zum Crawlen, Analysieren und Bewerten von Unternehmensdaten.

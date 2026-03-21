@@ -1,0 +1,124 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lead-crawler"
+version = "2.0.0"
+description = "Automatisierte Lead-Generierung für KMU in Österreich"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Max", email = "max@example.com"}
+]
+maintainers = [
+    {name = "Max", email = "max@example.com"}
+]
+keywords = ["lead-generation", "crawler", "wko", "austria", "llm", "ollama"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Business Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.11"
+dependencies = [
+    # Core
+    "pydantic>=2.5.0",
+    "python-dotenv>=1.0.0",
+    
+    # Crawling
+    "scrapy>=2.11.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=5.0.0",
+    "requests>=2.31.0",
+    
+    # Database
+    "supabase>=2.0.0",
+    
+    # LLM
+    "ollama>=0.1.0",
+    
+    # Geolocation
+    "geopy>=2.4.0",
+    
+    # Export
+    "pandas>=2.1.0",
+    "openpyxl>=3.1.0",
+    
+    # API
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "python-multipart>=0.0.6",
+    
+    # Web UI
+    "streamlit>=1.30.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.0",
+    "black>=23.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/blindidiotscout/lead-crawler"
+Documentation = "https://github.com/blindidiotscout/lead-crawler#readme"
+Repository = "https://github.com/blindidiotscout/lead-crawler.git"
+Issues = "https://github.com/blindidiotscout/lead-crawler/issues"
+
+[project.scripts]
+lead-crawler = "lead_crawler.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-v --tb=short"
+testpaths = ["tests"]
+markers = [
+    "unit: Unit tests (no external services)",
+    "integration: Integration tests (requires services)",
+    "slow: Slow running tests",
+    "wko: Real WKO crawler tests",
+    "ollama: Real Ollama LLM tests",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F401", "F811"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311", "py312"]
+
+[tool.coverage.run]
+source = ["src/lead_crawler"]
+branch = true
+omit = ["tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+skip_covered = true

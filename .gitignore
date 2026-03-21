@@ -7,6 +7,7 @@ __pycache__/
 env/
 venv/
 ENV/
+.venv/
 build/
 develop-eggs/
 dist/
@@ -26,33 +27,37 @@ wheels/
 # FastAPI / Uvicorn
 *.log
 .env
+.env.local
+.env.*.local
 
-# IDES
+# IDEs
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
+.project
+.pydevproject
+.spyderproject
+.spyproject
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
+coverage.xml
+.tox/
+.nox/
 
 # Database
 *.db
 *.sqlite3
-
-# But keep the import script
-!data/import_plz.py
-!data/zipcodes.at.csv
-
-# Config (secrets)
-config/settings.py
+data/*.db
+!data/.gitkeep
 
 # Export
-exports/*.csv
-exports/*.json
+exports/
+output/
 
 # Docs
 docs/*.pdf
@@ -60,5 +65,41 @@ docs/*.pdf
 # OS
 .DS_Store
 Thumbs.db
-output/
-*.pyc
+ehthumbs.db
+Desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# pytype
+.pytype/
+
+# Cython
+cython_debug/
+
+# Distribution
+*.manifest
+*.spec
+
+# Local development
+*.local
+secrets/
+credentials/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# But keep important files
+!data/.gitkeep
+!legacy/.gitkeep
