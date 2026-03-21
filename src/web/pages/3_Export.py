@@ -12,14 +12,10 @@ import streamlit as st
 from lead_crawler.pipelines import ExportConfig, ExportPipeline
 
 # Page config
-st.set_page_config(
-    page_title="Export - Lead Crawler",
-    page_icon="📥",
-    layout="wide"
-)
+st.set_page_config(page_title="Export - Lead Crawler", page_icon="📥", layout="wide")
 
 # Session State
-if 'search_results' not in st.session_state:
+if "search_results" not in st.session_state:
     st.session_state.search_results = []
 
 st.title("📥 Daten exportieren")
@@ -36,10 +32,7 @@ st.subheader("Export-Optionen")
 export_col1, export_col2 = st.columns(2)
 
 with export_col1:
-    export_format = st.selectbox(
-        "Dateiformat",
-        ["CSV", "JSON", "JSONL", "Excel (xlsx)"]
-    )
+    export_format = st.selectbox("Dateiformat", ["CSV", "JSON", "JSONL", "Excel (xlsx)"])
 
 with export_col2:
     include_llm = st.checkbox("LLM-Analyse inkludieren", value=True)
@@ -49,17 +42,23 @@ with export_col2:
 st.markdown("---")
 st.subheader("Felder auswählen")
 
-all_fields = ['name', 'strasse', 'plz', 'ort', 'bundesland', 'telefon', 'email', 'website', 'branche']
+all_fields = [
+    "name",
+    "strasse",
+    "plz",
+    "ort",
+    "bundesland",
+    "telefon",
+    "email",
+    "website",
+    "branche",
+]
 if include_llm:
-    all_fields.extend(['llm_branch', 'llm_services', 'llm_confidence'])
+    all_fields.extend(["llm_branch", "llm_services", "llm_confidence"])
 if include_score:
-    all_fields.extend(['score_total', 'score_grade', 'priority'])
+    all_fields.extend(["score_total", "score_grade", "priority"])
 
-selected_fields = st.multiselect(
-    "Zu exportierende Felder",
-    all_fields,
-    default=all_fields
-)
+selected_fields = st.multiselect("Zu exportierende Felder", all_fields, default=all_fields)
 
 # Filter-Optionen
 st.markdown("---")
@@ -72,9 +71,7 @@ with filter_col1:
 
 with filter_col2:
     priority_filter = st.multiselect(
-        "Priorität",
-        ["HIGH", "MEDIUM", "LOW"],
-        ["HIGH", "MEDIUM", "LOW"]
+        "Priorität", ["HIGH", "MEDIUM", "LOW"], ["HIGH", "MEDIUM", "LOW"]
     )
 
 # Vorschau
@@ -84,7 +81,7 @@ st.subheader("📋 Vorschau")
 # Filter anwenden
 filtered_results = results
 if min_score > 0:
-    filtered_results = [r for r in filtered_results if r.get('score_total', 0) >= min_score]
+    filtered_results = [r for r in filtered_results if r.get("score_total", 0) >= min_score]
 # Priority filter would need actual priority field in data
 
 st.write(f"**{len(filtered_results)}** von {len(results)} Unternehmen werden exportiert")
@@ -93,7 +90,7 @@ st.write(f"**{len(filtered_results)}** von {len(results)} Unternehmen werden exp
 if filtered_results:
     preview_data = []
     for r in filtered_results[:10]:  # Nur erste 10 für Vorschau
-        row = {k: r.get(k, 'N/A') for k in selected_fields[:5]}  # Nur erste 5 Felder
+        row = {k: r.get(k, "N/A") for k in selected_fields[:5]}  # Nur erste 5 Felder
         preview_data.append(row)
 
     st.dataframe(preview_data, use_container_width=True, hide_index=True)
@@ -109,21 +106,22 @@ if st.button("🚀 Export starten", type="primary"):
         try:
             # Export-Pipeline verwenden
             config = ExportConfig(
-                output_format=export_format.lower().replace(' (xlsx)', ''),
+                output_format=export_format.lower().replace(" (xlsx)", ""),
                 fields=selected_fields if selected_fields else None,
-                min_score=min_score
+                min_score=min_score,
             )
 
             # In Export Pipeline umwandeln
             from lead_crawler.models import Company
+
             companies = []
             for r in filtered_results:
                 # Dict zu Company konvertieren (vereinfacht)
-                company = Company(name=r.get('name', 'N/A'))
-                if r.get('plz'):
-                    company.address.plz = r.get('plz')
-                if r.get('ort'):
-                    company.address.ort = r.get('ort')
+                company = Company(name=r.get("name", "N/A"))
+                if r.get("plz"):
+                    company.address.plz = r.get("plz")
+                if r.get("ort"):
+                    company.address.ort = r.get("ort")
                 companies.append(company)
 
             # Export durchführen
@@ -135,7 +133,7 @@ if st.button("🚀 Export starten", type="primary"):
                 st.success(f"✅ {result.exported_companies} Unternehmen exportiert!")
 
                 # Datei lesen
-                with open(result.output_path, 'rb') as f:
+                with open(result.output_path, "rb") as f:
                     file_data = f.read()
 
                 filename = f"leads_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -156,7 +154,7 @@ if st.button("🚀 Export starten", type="primary"):
                     label=f"⬇️ {export_format} herunterladen",
                     data=file_data,
                     file_name=filename,
-                    mime=mime
+                    mime=mime,
                 )
             else:
                 st.error("Export fehlgeschlagen: Keine Ausgabedatei")
@@ -175,14 +173,14 @@ if st.button("📥 Direkt als CSV exportieren"):
         writer.writeheader()
 
         for r in filtered_results:
-            row = {k: str(r.get(k, '')) for k in selected_fields}
+            row = {k: str(r.get(k, "")) for k in selected_fields}
             writer.writerow(row)
 
         st.download_button(
             label="⬇️ CSV herunterladen",
             data=output.getvalue(),
             file_name=f"leads_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv"
+            mime="text/csv",
         )
     except Exception as e:
         st.error(f"Export fehlgeschlagen: {str(e)}")

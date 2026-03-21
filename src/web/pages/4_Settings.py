@@ -10,11 +10,7 @@ import streamlit as st
 from lead_crawler.config import get_settings
 
 # Page config
-st.set_page_config(
-    page_title="Einstellungen - Lead Crawler",
-    page_icon="⚙️",
-    layout="wide"
-)
+st.set_page_config(page_title="Einstellungen - Lead Crawler", page_icon="⚙️", layout="wide")
 
 # Settings laden
 settings = get_settings()
@@ -36,19 +32,23 @@ with tab1:
             "Max. parallele Requests",
             min_value=1,
             max_value=10,
-            value=settings.crawler.max_workers if hasattr(settings.crawler, 'max_workers') else 3
+            value=settings.crawler.max_workers if hasattr(settings.crawler, "max_workers") else 3,
         )
 
         request_timeout = st.slider(
             "Request Timeout (Sekunden)",
             min_value=10,
             max_value=120,
-            value=settings.crawler.timeout if hasattr(settings.crawler, 'timeout') else 30
+            value=settings.crawler.timeout if hasattr(settings.crawler, "timeout") else 30,
         )
 
         user_agent = st.text_input(
             "User-Agent",
-            value=settings.crawler.user_agent if hasattr(settings.crawler, 'user_agent') else "LeadCrawler/2.0"
+            value=(
+                settings.crawler.user_agent
+                if hasattr(settings.crawler, "user_agent")
+                else "LeadCrawler/2.0"
+            ),
         )
 
     with general_col2:
@@ -56,15 +56,14 @@ with tab1:
 
         plz_db_path = st.text_input(
             "PLZ-Datenbank Pfad",
-            value=str(settings.plz.db_path) if hasattr(settings.plz, 'db_path') else "data/plz_austria.db"
+            value=(
+                str(settings.plz.db_path)
+                if hasattr(settings.plz, "db_path")
+                else "data/plz_austria.db"
+            ),
         )
 
-        default_radius = st.slider(
-            "Standard-Radius (km)",
-            min_value=5,
-            max_value=50,
-            value=20
-        )
+        default_radius = st.slider("Standard-Radius (km)", min_value=5, max_value=50, value=20)
 
 with tab2:
     st.subheader("🤖 LLM-Einstellungen")
@@ -76,47 +75,44 @@ with tab2:
 
         ollama_url = st.text_input(
             "Ollama URL",
-            value=settings.ollama.url if hasattr(settings, 'ollama') else "http://192.168.178.123:11434"
+            value=(
+                settings.ollama.url
+                if hasattr(settings, "ollama")
+                else "http://192.168.178.123:11434"
+            ),
         )
 
         ollama_model = st.selectbox(
             "Standard-Modell",
             ["qwen2.5:7b", "qwen3.5:397b-cloud", "llama3.2:3b", "mistral:7b"],
-            index=0
+            index=0,
         )
 
         llm_timeout = st.slider(
             "LLM Timeout (Sekunden)",
             min_value=30,
             max_value=600,
-            value=settings.ollama.timeout if hasattr(settings.ollama, 'timeout') else 300
+            value=settings.ollama.timeout if hasattr(settings.ollama, "timeout") else 300,
         )
 
         retry_attempts = st.slider(
             "Retry-Versuche",
             min_value=1,
             max_value=5,
-            value=settings.ollama.retry_attempts if hasattr(settings.ollama, 'retry_attempts') else 3
+            value=(
+                settings.ollama.retry_attempts if hasattr(settings.ollama, "retry_attempts") else 3
+            ),
         )
 
     with llm_col2:
         st.markdown("**Analyse-Einstellungen**")
 
-        analyze_websites = st.toggle(
-            "Websites standardmäßig analysieren",
-            value=True
-        )
+        analyze_websites = st.toggle("Websites standardmäßig analysieren", value=True)
 
-        use_cache = st.toggle(
-            "Cache für LLM-Ergebnisse nutzen",
-            value=True
-        )
+        use_cache = st.toggle("Cache für LLM-Ergebnisse nutzen", value=True)
 
         max_words = st.slider(
-            "Max. Wörter für Website-Text",
-            min_value=100,
-            max_value=5000,
-            value=1000
+            "Max. Wörter für Website-Text", min_value=100, max_value=5000, value=1000
         )
 
 with tab3:
@@ -131,14 +127,18 @@ with tab3:
 
         cache_db_path = st.text_input(
             "Cache-Datenbank Pfad",
-            value=str(settings.cache.db_path) if hasattr(settings, 'cache') else "data/analysis_cache.db"
+            value=(
+                str(settings.cache.db_path)
+                if hasattr(settings, "cache")
+                else "data/analysis_cache.db"
+            ),
         )
 
         cache_ttl = st.slider(
             "Cache TTL (Tage)",
             min_value=1,
             max_value=90,
-            value=settings.cache.ttl_days if hasattr(settings.cache, 'ttl_days') else 30
+            value=settings.cache.ttl_days if hasattr(settings.cache, "ttl_days") else 30,
         )
 
     with cache_col2:
@@ -154,6 +154,7 @@ with tab3:
         if st.button("🗑️ Cache leeren"):
             try:
                 from lead_crawler.services.cache import get_cache
+
                 cache = get_cache()
                 cache.clear()
                 st.success("✅ Cache geleert!")
@@ -163,9 +164,10 @@ with tab3:
         if st.button("📊 Cache-Statistiken aktualisieren"):
             try:
                 from lead_crawler.services.cache import get_cache
+
                 cache = get_cache()
                 stats = cache.get_stats()
-                st.metric("Cache-Einträge", stats.get('total_entries', 0))
+                st.metric("Cache-Einträge", stats.get("total_entries", 0))
                 st.metric("Cache-Größe", f"{stats.get('db_size_mb', 0):.2f} MB")
             except Exception as e:
                 st.error(f"❌ Fehler: {str(e)}")
@@ -217,12 +219,8 @@ with tab4:
 
     if show_env:
         import os
-        env_vars = [
-            "OLLAMA_URL",
-            "OLLAMA_MODEL",
-            "CACHE_DB_PATH",
-            "PLZ_DB_PATH"
-        ]
+
+        env_vars = ["OLLAMA_URL", "OLLAMA_MODEL", "CACHE_DB_PATH", "PLZ_DB_PATH"]
 
         for var in env_vars:
             value = os.getenv(var, "Nicht gesetzt")

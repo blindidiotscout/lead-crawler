@@ -8,14 +8,10 @@ from datetime import datetime
 import streamlit as st
 
 # Page config
-st.set_page_config(
-    page_title="Analyse - Lead Crawler",
-    page_icon="📊",
-    layout="wide"
-)
+st.set_page_config(page_title="Analyse - Lead Crawler", page_icon="📊", layout="wide")
 
 # Session State
-if 'search_results' not in st.session_state:
+if "search_results" not in st.session_state:
     st.session_state.search_results = []
 
 st.title("📊 Analyse & Statistiken")
@@ -35,15 +31,15 @@ with metrics_col1:
     st.metric("Gefunden", len(results))
 
 with metrics_col2:
-    websites = sum(1 for r in results if r.get('website'))
+    websites = sum(1 for r in results if r.get("website"))
     st.metric("Mit Website", f"{websites} ({websites/len(results)*100:.0f}%)")
 
 with metrics_col3:
-    llm_done = sum(1 for r in results if r.get('llm_analysis'))
+    llm_done = sum(1 for r in results if r.get("llm_analysis"))
     st.metric("LLM-Analysiert", f"{llm_done} ({llm_done/len(results)*100:.0f}%)")
 
 with metrics_col4:
-    cached = sum(1 for r in results if r.get('llm_cached'))
+    cached = sum(1 for r in results if r.get("llm_cached"))
     st.metric("Aus Cache", cached)
 
 st.markdown("---")
@@ -53,16 +49,19 @@ st.subheader("🏭 Branchen-Verteilung")
 
 branches = {}
 for r in results:
-    b = r.get('branche', 'Unbekannt')
+    b = r.get("branche", "Unbekannt")
     branches[b] = branches.get(b, 0) + 1
 
 if branches:
     import pandas as pd
-    branch_df = pd.DataFrame([
-        {'Branche': k, 'Anzahl': v}
-        for k, v in sorted(branches.items(), key=lambda x: x[1], reverse=True)
-    ])
-    st.bar_chart(branch_df.set_index('Branche'))
+
+    branch_df = pd.DataFrame(
+        [
+            {"Branche": k, "Anzahl": v}
+            for k, v in sorted(branches.items(), key=lambda x: x[1], reverse=True)
+        ]
+    )
+    st.bar_chart(branch_df.set_index("Branche"))
 
     # Top Branchen
     st.markdown("**Top 5 Branchen:**")
@@ -71,22 +70,19 @@ if branches:
         st.write(f"- {branch}: {count} Unternehmen")
 
 # Score-Verteilung
-if any('score_total' in r for r in results):
+if any("score_total" in r for r in results):
     st.markdown("---")
     st.subheader("⭐ Score-Verteilung")
 
     scores = {}
     for r in results:
-        if 'score_total' in r:
-            g = r.get('score_grade', 'N/A')
+        if "score_total" in r:
+            g = r.get("score_grade", "N/A")
             scores[g] = scores.get(g, 0) + 1
 
     if scores:
-        score_df = pd.DataFrame([
-            {'Grade': k, 'Anzahl': v}
-            for k, v in sorted(scores.items())
-        ])
-        st.bar_chart(score_df.set_index('Grade'))
+        score_df = pd.DataFrame([{"Grade": k, "Anzahl": v} for k, v in sorted(scores.items())])
+        st.bar_chart(score_df.set_index("Grade"))
 
         # Score-Kategorien
         st.markdown("**Score-Kategorien:**")
@@ -99,36 +95,35 @@ if any('score_total' in r for r in results):
 st.markdown("---")
 st.subheader("🌐 Website-Verfügbarkeit")
 
-has_website = sum(1 for r in results if r.get('website'))
+has_website = sum(1 for r in results if r.get("website"))
 no_website = len(results) - has_website
 
-website_df = pd.DataFrame([
-    {'Kategorie': 'Mit Website', 'Anzahl': has_website},
-    {'Kategorie': 'Ohne Website', 'Anzahl': no_website}
-])
-st.bar_chart(website_df.set_index('Kategorie'))
+website_df = pd.DataFrame(
+    [
+        {"Kategorie": "Mit Website", "Anzahl": has_website},
+        {"Kategorie": "Ohne Website", "Anzahl": no_website},
+    ]
+)
+st.bar_chart(website_df.set_index("Kategorie"))
 
 # Kontaktdaten-Statistik
 st.markdown("---")
 st.subheader("📞 Kontaktdaten-Statistik")
 
 contact_stats = {
-    'Telefon': sum(1 for r in results if r.get('telefon')),
-    'Email': sum(1 for r in results if r.get('email')),
-    'Website': sum(1 for r in results if r.get('website'))
+    "Telefon": sum(1 for r in results if r.get("telefon")),
+    "Email": sum(1 for r in results if r.get("email")),
+    "Website": sum(1 for r in results if r.get("website")),
 }
 
-contact_df = pd.DataFrame([
-    {'Kategorie': k, 'Anzahl': v}
-    for k, v in contact_stats.items()
-])
-st.bar_chart(contact_df.set_index('Kategorie'))
+contact_df = pd.DataFrame([{"Kategorie": k, "Anzahl": v} for k, v in contact_stats.items()])
+st.bar_chart(contact_df.set_index("Kategorie"))
 
 # Letzte Suchen (Historie)
 st.markdown("---")
 st.subheader("📜 Such-Historie")
 
-if st.session_state.get('last_search'):
+if st.session_state.get("last_search"):
     last = st.session_state.last_search
     st.write(f"**Letzte Suche:** {last.get('plz', 'N/A')}")
     st.write(f"**Radius:** {last.get('radius', 'N/A')} km")
@@ -147,7 +142,7 @@ with export_col1:
 
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(['Branche', 'Anzahl', 'Prozent'])
+        writer.writerow(["Branche", "Anzahl", "Prozent"])
         total = sum(branches.values())
         for branch, count in sorted(branches.items(), key=lambda x: x[1], reverse=True):
             writer.writerow([branch, count, f"{count/total*100:.1f}%"])
@@ -156,7 +151,7 @@ with export_col1:
             label="⬇️ CSV herunterladen",
             data=output.getvalue(),
             file_name=f"branchen_statistik_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv"
+            mime="text/csv",
         )
 
 with export_col2:
@@ -177,5 +172,5 @@ with export_col2:
             label="⬇️ Text herunterladen",
             data=summary,
             file_name=f"zusammenfassung_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
-            mime="text/markdown"
+            mime="text/markdown",
         )
